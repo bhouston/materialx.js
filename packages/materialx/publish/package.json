@@ -1,0 +1,19 @@
+{
+  "name": "@materialx-js/materialx",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "source": "./src/index.ts",
+  "scripts": {
+    "build": "tsgo",
+    "dev": "tsgo -w --preserveWatchOutput --noEmitOnError",
+    "generate:nodes": "node ./dist/scripts/generate-node-registry.js"
+  },
+  "dependencies": {
+    "fast-xml-parser": "^5.3.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24"
+  }
+}

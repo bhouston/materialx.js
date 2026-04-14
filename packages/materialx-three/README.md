@@ -1,0 +1,86 @@
+# @materialx-js/materialx-three
+
+MaterialX-to-Three.js bridge for compiling MaterialX documents into Three TSL-driven materials.
+
+This package is designed to sit on top of `@materialx-js/materialx` and produce `MeshPhysicalNodeMaterial` assignments from MaterialX graphs, with a current focus on Standard Surface workflows.
+
+## Current Scope
+
+- Standard Surface-first compilation path (`surfacematerial` -> `standard_surface`)
+- Graph reference resolution (`nodename`, `nodegraph`, `output`)
+- Texture resolver hooks for browser or Node usage
+- Mapping coverage report generation (`SUPPORTED_NODES.md`)
+- Warning reporting for unsupported nodes and missing references
+
+This is still an evolving implementation, not full MaterialX parity.
+
+## Installation
+
+In this monorepo:
+
+```bash
+pnpm install
+```
+
+For package-local development:
+
+```bash
+pnpm --filter @materialx-js/materialx-three build
+pnpm --filter @materialx-js/materialx-three dev
+```
+
+## Basic Usage
+
+```ts
+import { parseMaterialX } from '@materialx-js/materialx'
+import {
+  compileMaterialXToTSL,
+  createThreeMaterialFromDocument,
+  createTextureResolver,
+} from '@materialx-js/materialx-three'
+
+const document = parseMaterialX(xmlString)
+
+const compileResult = compileMaterialXToTSL(document, {
+  textureResolver: createTextureResolver({ basePath: '/assets/materials' }),
+})
+
+const { material, result } = createThreeMaterialFromDocument(document)
+```
+
+### Main Exports
+
+- `compileMaterialXToTSL(document, options)`
+- `createThreeMaterialFromDocument(document, options)`
+- `createTextureResolver(options)`
+- `buildGraphIndex(document)`
+- `resolveInputReference(input, scopeGraph, index)`
+- `topologicallySortFromNode(node, scopeGraph, index)`
+- `supportedNodeCategories`
+
+## Texture Resolution
+
+The compiler does not fetch images directly. Instead it delegates to a `TextureResolver`.
+
+- Use `createTextureResolver` for simple path-based resolution with cacheing.
+- In browser apps, use a custom resolver (like the previewer) to map dropped files or public assets.
+
+## Scripts
+
+From repo root:
+
+```bash
+pnpm --filter @materialx-js/materialx-three build
+pnpm --filter @materialx-js/materialx-three dev
+pnpm --filter @materialx-js/materialx-three generate:coverage
+```
+
+`generate:coverage` regenerates `packages/materialx-three/SUPPORTED_NODES.md`.
+
+## Tests
+
+```bash
+pnpm test
+```
+
+Tests include compiler behavior and graph resolution checks using upstream MaterialX fixtures in `../MaterialX`.

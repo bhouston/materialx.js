@@ -1,0 +1,22 @@
+{
+  "name": "@materialx-js/materialx-three",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "source": "./src/index.ts",
+  "scripts": {
+    "build": "tsgo",
+    "dev": "tsgo -w --preserveWatchOutput --noEmitOnError",
+    "generate:coverage": "node ./dist/scripts/generate-coverage-report.js"
+  },
+  "dependencies": {
+    "@materialx-js/materialx": "0.1.0",
+    "three": "^0.181.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24",
+    "@types/three": "^0.181.0",
+    "vitest": "^4.0.0"
+  }
+}

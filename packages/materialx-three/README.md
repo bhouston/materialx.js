@@ -2,15 +2,17 @@
 
 MaterialX-to-Three.js bridge for compiling MaterialX documents into Three TSL-driven materials.
 
-This package is designed to sit on top of `@materialx-js/materialx` and produce `MeshPhysicalNodeMaterial` assignments from MaterialX graphs, with a current focus on Standard Surface workflows.
+This package is designed to sit on top of `@materialx-js/materialx` and produce `MeshPhysicalNodeMaterial` assignments from MaterialX graphs, with a current focus on Standard Surface and OpenPBR workflows.
 
 ## Current Scope
 
-- Standard Surface-first compilation path (`surfacematerial` -> `standard_surface`)
+- Surface shader compilation path (`surfacematerial` -> `standard_surface` | `open_pbr_surface`)
 - Graph reference resolution (`nodename`, `nodegraph`, `output`)
 - Texture resolver hooks for browser or Node usage
 - Mapping coverage report generation (`SUPPORTED_NODES.md`)
 - Warning reporting for unsupported nodes and missing references
+
+OpenPBR support currently maps core inputs to MeshPhysical slots (`base_color`, `base_metalness`, `specular_roughness`, `transmission_weight`, `specular_ior`, `geometry_normal`, `emission_luminance` + `emission_color`). Advanced OpenPBR lobes (coat/fuzz/thin-film/subsurface anisotropy nuances) are reported as warnings when non-default and are not fully modeled yet.
 
 This is still an evolving implementation, not full MaterialX parity.
 

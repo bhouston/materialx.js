@@ -27,6 +27,12 @@ const copperFixture = path.resolve(
   '../../../../MaterialX/resources/Materials/Examples/StandardSurface/standard_surface_copper.mtlx'
 );
 const openPbrFixture = path.resolve(sourceDir, '../../../../MaterialX/resources/Materials/Examples/OpenPbr/open_pbr_default.mtlx');
+const openPbrGlassFixture = path.resolve(sourceDir, '../../../../MaterialX/resources/Materials/Examples/OpenPbr/open_pbr_glass.mtlx');
+const openPbrKetchupFixture = path.resolve(sourceDir, '../../../../MaterialX/resources/Materials/Examples/OpenPbr/open_pbr_ketchup.mtlx');
+const openPbrSoapBubbleFixture = path.resolve(
+  sourceDir,
+  '../../../../MaterialX/resources/Materials/Examples/OpenPbr/open_pbr_soapbubble.mtlx'
+);
 
 const compileFixture = (fixturePath: string) => {
   const xml = readFileSync(fixturePath, 'utf8');
@@ -140,7 +146,7 @@ describe('materialx-three compiler', () => {
     expect(compiled.material.sheenNode).toBeDefined();
     expect(compiled.material.sheenRoughnessNode).toBeDefined();
     expect(compiled.material.opacityNode).toBeDefined();
-    expect(compiled.material.transparent).toBe(false);
+    expect(compiled.material.transparent).toBe(true);
     expect(compiled.material.attenuationColorNode).toBeDefined();
     expect(compiled.material.attenuationDistanceNode).toBeDefined();
   });
@@ -163,9 +169,51 @@ describe('materialx-three compiler', () => {
     expect(compiled.material.transparent).toBe(true);
   });
 
-  it('reports unsupported surface shader graphs', () => {
+  it('compiles an open_pbr_surface material into node assignments', () => {
     const result = compileFixture(openPbrFixture);
-    expect(result.warnings.some((entry) => entry.code === 'unsupported-node')).toBe(true);
+
+    expect(result.surfaceShaderName).toBe('open_pbr_surface_surfaceshader');
+    expect(result.assignments.colorNode).toBeDefined();
+    expect(result.assignments.roughnessNode).toBeDefined();
+    expect(result.assignments.metalnessNode).toBeDefined();
+    expect(result.assignments.transmissionNode).toBeDefined();
+    expect(result.unsupportedCategories).not.toContain('open_pbr_surface');
+    expect(
+      result.warnings.some((entry) => entry.code === 'unsupported-node' && entry.category === 'open_pbr_surface')
+    ).toBe(false);
+  });
+
+  it('warns when open_pbr advanced lobes are non-default', () => {
+    const result = compileFixture(openPbrKetchupFixture);
+
+    expect(
+      result.warnings.some(
+        (entry) =>
+          entry.code === 'unsupported-node' &&
+          entry.category === 'open_pbr_surface' &&
+          entry.message.includes('subsurface_weight')
+      )
+    ).toBe(true);
+  });
+
+  it('supports transmission-heavy open_pbr fixture', () => {
+    const result = compileFixture(openPbrGlassFixture);
+    expect(result.assignments.transmissionNode).toBeDefined();
+    expect(result.assignments.iorNode).toBeDefined();
+    expect(result.assignments.colorNode).toBeDefined();
+  });
+
+  it('maps open_pbr thin film inputs to physical iridescence slots', () => {
+    const result = compileFixture(openPbrSoapBubbleFixture);
+    expect(result.assignments.iridescenceNode).toBeDefined();
+    expect(result.assignments.iridescenceIORNode).toBeDefined();
+    expect(result.assignments.iridescenceThicknessNode).toBeDefined();
+
+    const xml = readFileSync(openPbrSoapBubbleFixture, 'utf8');
+    const compiled = createThreeMaterialFromDocument(parseMaterialX(xml));
+    expect(compiled.material.iridescenceNode).toBeDefined();
+    expect(compiled.material.iridescenceIORNode).toBeDefined();
+    expect(compiled.material.iridescenceThicknessNode).toBeDefined();
   });
 
   it('supports place2d texture transforms in greysphere calibration fixture', () => {

@@ -2,6 +2,7 @@ export const supportedNodeCategories = new Set([
   'absval',
   'surfacematerial',
   'standard_surface',
+  'open_pbr_surface',
   'image',
   'tiledimage',
   'hextiledimage',

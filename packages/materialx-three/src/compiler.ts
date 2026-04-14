@@ -69,6 +69,7 @@ import {
 } from 'three/tsl';
 import { buildGraphIndex, resolveInputReference } from './graph/resolve.js';
 import { supportedNodeCategories } from './mapping/mx-node-map.js';
+import { buildOpenPbrSurfaceAssignments } from './mapping/open-pbr-surface.js';
 import { buildStandardSurfaceAssignments } from './mapping/standard-surface.js';
 import { applyTextureColorSpace } from './runtime/colorspace.js';
 import { createTextureResolver } from './runtime/texture-resolver.js';
@@ -864,6 +865,57 @@ const getCoveredCategories = (document: MaterialXDocument): Set<string> => {
   return categories;
 };
 
+const toScalar = (value: unknown): number | undefined => {
+  if (typeof value === 'number') {
+    return value;
+  }
+  if (typeof value === 'string') {
+    return Number.isFinite(Number.parseFloat(value)) ? Number.parseFloat(value) : undefined;
+  }
+  return undefined;
+};
+
+const readScalarInput = (node: MaterialXNode, name: string): number | undefined => {
+  const input = readInput(node, name);
+  if (!input) {
+    return undefined;
+  }
+  return toScalar(input.value ?? input.attributes.value);
+};
+
+const warnOpenPbrLimitations = (surfaceNode: MaterialXNode, context: CompileContext): void => {
+  const unsupportedLobeInputs: Array<{ name: string; expected?: number }> = [
+    { name: 'subsurface_weight', expected: 0 },
+    { name: 'transmission_scatter_anisotropy', expected: 0 },
+    { name: 'transmission_dispersion_scale', expected: 0 },
+    { name: 'coat_darkening', expected: 1 },
+  ];
+
+  const activeUnsupportedInputs = unsupportedLobeInputs.filter((entry) => {
+    const value = readScalarInput(surfaceNode, entry.name);
+    if (value === undefined) {
+      return false;
+    }
+    if (entry.expected === undefined) {
+      return true;
+    }
+    return Math.abs(value - entry.expected) > Number.EPSILON;
+  });
+
+  if (activeUnsupportedInputs.length === 0) {
+    return;
+  }
+
+  warn(context, {
+    code: 'unsupported-node',
+    category: surfaceNode.category,
+    nodeName: surfaceNode.name,
+    message: `OpenPBR inputs currently map to core MeshPhysical slots only; advanced lobes are ignored (${activeUnsupportedInputs
+      .map((entry) => entry.name)
+      .join(', ')})`,
+  });
+};
+
 export const compileMaterialXToTSL = (
   document: MaterialXDocument,
   options: MaterialXThreeCompileOptions = {}
@@ -894,10 +946,10 @@ export const compileMaterialXToTSL = (
   }
 
   const surfaceShader = resolveSurfaceShaderNode(materialNode, context);
-  if (!surfaceShader || surfaceShader.node.category !== 'standard_surface') {
+  if (!surfaceShader || !['standard_surface', 'open_pbr_surface'].includes(surfaceShader.node.category)) {
     warnings.push({
       code: 'unsupported-node',
-      message: 'Only standard_surface is supported for surfacematerial compilation',
+      message: 'Only standard_surface and open_pbr_surface are supported for surfacematerial compilation',
       category: surfaceShader?.node.category,
       nodeName: surfaceShader?.node.name,
     });
@@ -910,9 +962,17 @@ export const compileMaterialXToTSL = (
     };
   }
 
-  const assignments = buildStandardSurfaceAssignments(surfaceShader.node, {
-    getInputNode: (node, name, fallback) => resolveInputNode(node, name, fallback, context, surfaceShader.scopeGraph),
-  });
+  const getInputNode = (node: MaterialXNode, name: string, fallback: unknown): unknown =>
+    resolveInputNode(node, name, fallback, context, surfaceShader.scopeGraph);
+
+  const assignments =
+    surfaceShader.node.category === 'standard_surface'
+      ? buildStandardSurfaceAssignments(surfaceShader.node, { getInputNode })
+      : buildOpenPbrSurfaceAssignments(surfaceShader.node, { getInputNode });
+
+  if (surfaceShader.node.category === 'open_pbr_surface') {
+    warnOpenPbrLimitations(surfaceShader.node, context);
+  }
 
   const coveredCategories = getCoveredCategories(document);
   const supportedCategories = [...coveredCategories].filter((entry) => supportedNodeCategories.has(entry)).sort();
@@ -978,11 +1038,15 @@ export const createThreeMaterialFromDocument = (
   material.normalNode = result.assignments.normalNode as never;
   material.emissiveNode = result.assignments.emissiveNode as never;
   material.opacityNode = opacityAssignment as never;
-  // Three.js transmission path expects opaque blending by default.
-  material.transparent = hasTransmission ? false : hasFractionalOpacity;
+  material.transparent = hasTransmission ? true : hasFractionalOpacity;
   material.transmissionNode = transmissionAssignment as never;
   if (hasTransmission) {
+    // Keep the non-node scalar enabled so Three routes the material through
+    // its transmission render path in both WebGL and WebGPU backends.
+    material.transmission = typeof transmissionAssignment === 'number' ? transmissionAssignment : 1;
     material.opacity = 1;
+  } else if (typeof opacityAssignment === 'number') {
+    material.opacity = opacityAssignment;
   }
   material.attenuationColorNode = result.assignments.attenuationColorNode as never;
   material.attenuationDistanceNode = result.assignments.attenuationDistanceNode as never;

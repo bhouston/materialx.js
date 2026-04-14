@@ -5,8 +5,8 @@ Generated from `@materialx-js/materialx` node registry.
 ## Summary
 
 - Total categories in registry: 223
-- Supported categories: 83
-- Unsupported categories: 140
+- Supported categories: 84
+- Unsupported categories: 139
 
 ## Supported
 
@@ -59,6 +59,7 @@ Generated from `@materialx-js/materialx` node registry.
 - `normal`
 - `normalize`
 - `normalmap`
+- `open_pbr_surface`
 - `overlay`
 - `place2d`
 - `position`
@@ -184,7 +185,6 @@ Generated from `@materialx-js/materialx` node registry.
 - `nodegraph`
 - `not`
 - `open_pbr_anisotropy`
-- `open_pbr_surface`
 - `open_pbr_surface_to_standard_surface`
 - `or`
 - `oren_nayar_diffuse_bsdf`

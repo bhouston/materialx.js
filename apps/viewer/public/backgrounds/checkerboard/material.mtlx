@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<materialx version="1.39" colorspace="lin_rec709">
+  <nodegraph name="NG_Checkerboard">
+    <texcoord name="uv0" type="vector2" />
+    <checkerboard name="bg_checker" type="color3">
+      <input name="texcoord" type="vector2" nodename="uv0" />
+      <input name="color1" type="color3" value="0.82, 0.82, 0.82" />
+      <input name="color2" type="color3" value="0.38, 0.38, 0.38" />
+      <input name="scale" type="vector2" value="14.0, 14.0" />
+    </checkerboard>
+    <output name="checker_out" type="color3" nodename="bg_checker" />
+  </nodegraph>
+  <standard_surface name="SR_BackgroundCheckerboard" type="surfaceshader">
+    <input name="base" type="float" value="0.0" />
+    <input name="specular" type="float" value="0.0" />
+    <input name="emission" type="float" value="1.0" />
+    <input name="emission_color" type="color3" nodegraph="NG_Checkerboard" output="checker_out" />
+  </standard_surface>
+  <surfacematerial name="M_BackgroundCheckerboard" type="material">
+    <input name="surfaceshader" type="surfaceshader" nodename="SR_BackgroundCheckerboard" />
+  </surfacematerial>
+</materialx>

@@ -6,7 +6,9 @@ import {
   add,
   acos,
   asin,
+  atan2,
   ceil,
+  checker,
   clamp,
   cos,
   cross,
@@ -14,8 +16,10 @@ import {
   div,
   dot,
   exp,
+  fract,
   floor,
   float,
+  length,
   log,
   luminance,
   max,
@@ -32,7 +36,12 @@ import {
   mx_ifgreatereq,
   mx_noise_float,
   mx_place2d,
+  mx_ramplr,
+  mx_ramptb,
   mx_rgbtohsv,
+  mx_safepower,
+  mx_splitlr,
+  mx_splittb,
   mx_unifiednoise2d,
   mx_unifiednoise3d,
   mx_worley_noise_float,
@@ -49,6 +58,7 @@ import {
   sin,
   smoothstep,
   sqrt,
+  step,
   sub,
   tan,
   texture,
@@ -372,10 +382,47 @@ const compileNode = (
       compiled = mix(bg as never, fg as never, mixAmount as never);
       break;
     }
+    case 'screen': {
+      const fg = resolveInputNode(node, 'fg', 1, context, scopeGraph);
+      const bg = resolveInputNode(node, 'bg', 0, context, scopeGraph);
+      const mixAmount = resolveInputNode(node, 'mix', 1, context, scopeGraph);
+      const screened = sub(float(1), mul(sub(float(1), fg as never) as never, sub(float(1), bg as never) as never));
+      compiled = mix(bg as never, screened as never, mixAmount as never);
+      break;
+    }
+    case 'overlay': {
+      const fg = resolveInputNode(node, 'fg', 1, context, scopeGraph);
+      const bg = resolveInputNode(node, 'bg', 0, context, scopeGraph);
+      const mixAmount = resolveInputNode(node, 'mix', 1, context, scopeGraph);
+      const lowBranch = mul(mul(float(2), fg as never) as never, bg as never);
+      const highBranch = sub(
+        float(1),
+        mul(mul(float(2), sub(float(1), fg as never) as never) as never, sub(float(1), bg as never) as never)
+      );
+      const overlayed = mix(lowBranch as never, highBranch as never, step(float(0.5), bg as never) as never);
+      compiled = mix(bg as never, overlayed as never, mixAmount as never);
+      break;
+    }
+    case 'checkerboard': {
+      const color1 = resolveInputNode(node, 'color1', vec3(1, 1, 1), context, scopeGraph);
+      const color2 = resolveInputNode(node, 'color2', vec3(0, 0, 0), context, scopeGraph);
+      const texcoord = resolveInputNode(node, 'texcoord', uv(0), context, scopeGraph);
+      const uvTiling = resolveInputNode(node, 'uvtiling', vec2(8, 8), context, scopeGraph);
+      const uvOffset = resolveInputNode(node, 'uvoffset', vec2(0, 0), context, scopeGraph);
+      const transformedUv = add(mul(texcoord as never, uvTiling as never), uvOffset as never);
+      const mask = clamp(checker(transformedUv as never) as never, float(0), float(1));
+      compiled = mix(color1 as never, color2 as never, mask as never);
+      break;
+    }
     case 'dot':
     case 'dotproduct':
       compiled = compileBinaryMath(node, 'in1', 'in2', context, scopeGraph, (left, right) => dot(left as never, right as never));
       break;
+    case 'magnitude': {
+      const inNode = resolveInputNode(node, 'in', vec3(0, 0, 0), context, scopeGraph);
+      compiled = length(inNode as never);
+      break;
+    }
     case 'normalize': {
       const inNode = resolveInputNode(node, 'in', vec3(0, 0, 1), context, scopeGraph);
       compiled = normalize(inNode as never);
@@ -449,8 +496,24 @@ const compileNode = (
       compiled = log(inNode as never);
       break;
     }
+    case 'fract': {
+      const inNode = resolveInputNode(node, 'in', 0, context, scopeGraph);
+      compiled = fract(inNode as never);
+      break;
+    }
+    case 'atan2': {
+      const inY = resolveInputNode(node, 'iny', 0, context, scopeGraph);
+      const inX = resolveInputNode(node, 'inx', 1, context, scopeGraph);
+      compiled = atan2(inY as never, inX as never);
+      break;
+    }
     case 'power':
       compiled = compileBinaryMath(node, 'in1', 'in2', context, scopeGraph, (left, right) => pow(left as never, right as never));
+      break;
+    case 'safepower':
+      compiled = compileBinaryMath(node, 'in1', 'in2', context, scopeGraph, (left, right) =>
+        mx_safepower(left as never, right as never)
+      );
       break;
     case 'distance':
       compiled = compileBinaryMath(node, 'in1', 'in2', context, scopeGraph, (left, right) => distance(left as never, right as never));
@@ -486,6 +549,23 @@ const compileNode = (
       const rangeOut = sub(outHigh as never, outLow as never);
       const normalized = div(sub(inNode as never, inLow as never), rangeIn as never);
       compiled = add(outLow as never, mul(normalized as never, rangeOut as never));
+      break;
+    }
+    case 'range': {
+      const inNode = resolveInputNode(node, 'in', 0, context, scopeGraph);
+      const inLow = resolveInputNode(node, 'inlow', 0, context, scopeGraph);
+      const inHigh = resolveInputNode(node, 'inhigh', 1, context, scopeGraph);
+      const gamma = resolveInputNode(node, 'gamma', 1, context, scopeGraph);
+      const outLow = resolveInputNode(node, 'outlow', 0, context, scopeGraph);
+      const outHigh = resolveInputNode(node, 'outhigh', 1, context, scopeGraph);
+      const doClamp = resolveInputNode(node, 'doclamp', false, context, scopeGraph);
+
+      const remapped = div(sub(inNode as never, inLow as never), sub(inHigh as never, inLow as never));
+      const reciprocalGamma = div(float(1), gamma as never);
+      const gammaCorrected = mul(pow(abs(remapped as never) as never, reciprocalGamma as never), sign(remapped as never) as never);
+      const scaled = add(outLow as never, mul(gammaCorrected as never, sub(outHigh as never, outLow as never) as never));
+      const clamped = clamp(scaled as never, outLow as never, outHigh as never);
+      compiled = mx_ifequal(doClamp as never, true as never, clamped as never, scaled as never);
       break;
     }
     case 'combine2': {
@@ -538,6 +618,36 @@ const compileNode = (
         rotate as never,
         offset as never
       );
+      break;
+    }
+    case 'ramplr': {
+      const valueL = resolveInputNode(node, 'valuel', 0, context, scopeGraph);
+      const valueR = resolveInputNode(node, 'valuer', 0, context, scopeGraph);
+      const texcoord = resolveInputNode(node, 'texcoord', uv(0), context, scopeGraph);
+      compiled = mx_ramplr(valueL as never, valueR as never, texcoord as never);
+      break;
+    }
+    case 'ramptb': {
+      const valueT = resolveInputNode(node, 'valuet', 0, context, scopeGraph);
+      const valueB = resolveInputNode(node, 'valueb', 0, context, scopeGraph);
+      const texcoord = resolveInputNode(node, 'texcoord', uv(0), context, scopeGraph);
+      compiled = mx_ramptb(valueT as never, valueB as never, texcoord as never);
+      break;
+    }
+    case 'splitlr': {
+      const valueL = resolveInputNode(node, 'valuel', 0, context, scopeGraph);
+      const valueR = resolveInputNode(node, 'valuer', 0, context, scopeGraph);
+      const center = resolveInputNode(node, 'center', 0.5, context, scopeGraph);
+      const texcoord = resolveInputNode(node, 'texcoord', uv(0), context, scopeGraph);
+      compiled = mx_splitlr(valueL as never, valueR as never, center as never, texcoord as never);
+      break;
+    }
+    case 'splittb': {
+      const valueT = resolveInputNode(node, 'valuet', 0, context, scopeGraph);
+      const valueB = resolveInputNode(node, 'valueb', 0, context, scopeGraph);
+      const center = resolveInputNode(node, 'center', 0.5, context, scopeGraph);
+      const texcoord = resolveInputNode(node, 'texcoord', uv(0), context, scopeGraph);
+      compiled = mx_splittb(valueT as never, valueB as never, center as never, texcoord as never);
       break;
     }
     case 'ifgreater': {
@@ -829,10 +939,15 @@ export const createThreeMaterialFromDocument = (
   material.colorNode = result.assignments.colorNode as never;
   material.roughnessNode = result.assignments.roughnessNode as never;
   material.metalnessNode = result.assignments.metalnessNode as never;
+  material.clearcoatNode = result.assignments.clearcoatNode as never;
+  material.clearcoatRoughnessNode = result.assignments.clearcoatRoughnessNode as never;
   material.normalNode = result.assignments.normalNode as never;
   material.emissiveNode = result.assignments.emissiveNode as never;
   material.transmissionNode = result.assignments.transmissionNode as never;
   material.iorNode = result.assignments.iorNode as never;
+  material.iridescenceNode = result.assignments.iridescenceNode as never;
+  material.iridescenceIORNode = result.assignments.iridescenceIORNode as never;
+  material.iridescenceThicknessNode = result.assignments.iridescenceThicknessNode as never;
 
   return { material, result };
 };

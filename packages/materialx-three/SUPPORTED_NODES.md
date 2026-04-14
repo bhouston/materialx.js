@@ -5,8 +5,8 @@ Generated from `@materialx-js/materialx` node registry.
 ## Summary
 
 - Total categories in registry: 223
-- Supported categories: 71
-- Unsupported categories: 152
+- Supported categories: 83
+- Unsupported categories: 140
 
 ## Supported
 
@@ -14,9 +14,11 @@ Generated from `@materialx-js/materialx` node registry.
 - `acos`
 - `add`
 - `asin`
+- `atan2`
 - `ceil`
 - `cellnoise2d`
 - `cellnoise3d`
+- `checkerboard`
 - `clamp`
 - `combine2`
 - `combine3`
@@ -33,6 +35,7 @@ Generated from `@materialx-js/materialx` node registry.
 - `exp`
 - `extract`
 - `floor`
+- `fract`
 - `fractal3d`
 - `heighttonormal`
 - `hextiledimage`
@@ -45,6 +48,7 @@ Generated from `@materialx-js/materialx` node registry.
 - `invert`
 - `ln`
 - `luminance`
+- `magnitude`
 - `max`
 - `min`
 - `mix`
@@ -55,21 +59,29 @@ Generated from `@materialx-js/materialx` node registry.
 - `normal`
 - `normalize`
 - `normalmap`
+- `overlay`
 - `place2d`
 - `position`
 - `power`
+- `ramplr`
+- `ramptb`
+- `range`
 - `reflect`
 - `refract`
 - `remap`
 - `rgbtohsv`
 - `round`
+- `safepower`
 - `saturate`
+- `screen`
 - `separate2`
 - `separate3`
 - `separate4`
 - `sign`
 - `sin`
 - `smoothstep`
+- `splitlr`
+- `splittb`
 - `sqrt`
 - `standard_surface`
 - `subtract`
@@ -107,14 +119,12 @@ Generated from `@materialx-js/materialx` node registry.
 - `and`
 - `anisotropic_vdf`
 - `artistic_ior`
-- `atan2`
 - `bitangent`
 - `blackbody`
 - `blur`
 - `bump`
 - `burley_diffuse_bsdf`
 - `burn`
-- `checkerboard`
 - `chiang_hair_absorption_from_color`
 - `chiang_hair_bsdf`
 - `chiang_hair_roughness`
@@ -137,7 +147,6 @@ Generated from `@materialx-js/materialx` node registry.
 - `facingratio`
 - `flake2d`
 - `flake3d`
-- `fract`
 - `fractal2d`
 - `frame`
 - `g18_rec709_to_lin_rec709`
@@ -168,7 +177,6 @@ Generated from `@materialx-js/materialx` node registry.
 - `lin_adobergb_to_lin_rec709`
 - `lin_displayp3_to_lin_rec709`
 - `line`
-- `magnitude`
 - `mask`
 - `matte`
 - `measured_edf`
@@ -185,28 +193,20 @@ Generated from `@materialx-js/materialx` node registry.
 - `output`
 - `outside`
 - `over`
-- `overlay`
 - `plus`
 - `point_light`
 - `premult`
 - `ramp`
 - `ramp4`
 - `ramp_gradient`
-- `ramplr`
-- `ramptb`
 - `randomcolor`
 - `randomfloat`
-- `range`
 - `rec709_display_to_lin_rec709`
 - `rotate2d`
 - `rotate3d`
 - `roughness_anisotropy`
 - `roughness_dual`
-- `safepower`
-- `screen`
 - `sheen_bsdf`
-- `splitlr`
-- `splittb`
 - `spot_light`
 - `srgb_displayp3_to_lin_rec709`
 - `srgb_texture_to_lin_rec709`

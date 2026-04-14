@@ -63,7 +63,7 @@ const { material, result } = createThreeMaterialFromDocument(document)
 The compiler does not fetch images directly. Instead it delegates to a `TextureResolver`.
 
 - Use `createTextureResolver` for simple path-based resolution with cacheing.
-- In browser apps, use a custom resolver (like the previewer) to map dropped files or public assets.
+- In browser apps, use a custom resolver (like `apps/viewer`) to map dropped files or public assets.
 
 ## Scripts
 

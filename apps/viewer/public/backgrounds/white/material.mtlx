@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<materialx version="1.39" colorspace="lin_rec709">
+  <standard_surface name="SR_BackgroundWhite" type="surfaceshader">
+    <input name="base" type="float" value="0.0" />
+    <input name="specular" type="float" value="0.0" />
+    <input name="emission" type="float" value="1.0" />
+    <input name="emission_color" type="color3" value="1.0, 1.0, 1.0" />
+  </standard_surface>
+  <surfacematerial name="M_BackgroundWhite" type="material">
+    <input name="surfaceshader" type="surfaceshader" nodename="SR_BackgroundWhite" />
+  </surfacematerial>
+</materialx>

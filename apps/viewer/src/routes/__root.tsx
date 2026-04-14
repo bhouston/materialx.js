@@ -19,7 +19,7 @@ export const Route = createRootRoute({
         content: 'width=device-width, initial-scale=1',
       },
       {
-        title: 'TanStack Start Starter',
+        title: 'MaterialX Viewer',
       },
     ],
     links: [
@@ -39,9 +39,9 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
         <HeadContent />
       </head>
-      <body className="font-sans antialiased [overflow-wrap:anywhere] selection:bg-[rgba(79,184,178,0.24)]">
+      <body className="flex min-h-screen flex-col font-sans antialiased [overflow-wrap:anywhere]">
         <Header />
-        {children}
+        <main className="flex-1">{children}</main>
         <Footer />
         <TanStackDevtools
           config={{

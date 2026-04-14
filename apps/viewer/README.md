@@ -1,4 +1,4 @@
-# materialx-previewer
+# viewer
 
 Interactive app for previewing MaterialX documents through `@materialx-js/materialx-three` and Three.js TSL.
 
@@ -20,7 +20,7 @@ Interactive app for previewing MaterialX documents through `@materialx-js/materi
 
 Built-in examples live in:
 
-`apps/materialx-previewer/public/examples/<example-name>/`
+`apps/viewer/public/examples/<example-name>/`
 
 Each example directory contains:
 
@@ -28,19 +28,32 @@ Each example directory contains:
 - related texture/image files
 - `info.txt` (display name)
 
+## Built-in Backgrounds
+
+Built-in backgrounds live in:
+
+`apps/viewer/public/backgrounds/<background-name>/`
+
+Each background directory contains:
+
+- `material.mtlx`
+
+The directory name is used as the background label in the Preview panel selector.
+Default background: `checkerboard`.
+
 ## Development
 
 From repo root:
 
 ```bash
 pnpm install
-pnpm previewer:dev
+pnpm viewer:dev
 ```
 
 Or directly:
 
 ```bash
-pnpm --filter materialx-previewer dev
+pnpm --filter viewer dev
 ```
 
 Default dev server: `http://localhost:3000`
@@ -50,15 +63,15 @@ Default dev server: `http://localhost:3000`
 From repo root:
 
 ```bash
-pnpm previewer:build
-pnpm previewer:test
+pnpm viewer:build
+pnpm viewer:test
 ```
 
 Or directly:
 
 ```bash
-pnpm --filter materialx-previewer build
-pnpm --filter materialx-previewer test
+pnpm --filter viewer build
+pnpm --filter viewer test
 ```
 
 ## Drag-and-Drop Workflow

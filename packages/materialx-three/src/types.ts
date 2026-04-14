@@ -28,10 +28,15 @@ export interface MaterialSlotAssignments {
   colorNode?: unknown;
   roughnessNode?: unknown;
   metalnessNode?: unknown;
+  clearcoatNode?: unknown;
+  clearcoatRoughnessNode?: unknown;
   normalNode?: unknown;
   emissiveNode?: unknown;
   transmissionNode?: unknown;
   iorNode?: unknown;
+  iridescenceNode?: unknown;
+  iridescenceIORNode?: unknown;
+  iridescenceThicknessNode?: unknown;
 }
 
 export interface MaterialXThreeCompileResult {

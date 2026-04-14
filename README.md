@@ -7,7 +7,7 @@ TypeScript monorepo for reading, validating, and writing MaterialX XML, with nod
 - `packages/materialx` - typed MaterialX document model, XML parser/serializer, filesystem IO helpers, validation API, generated node registry
 - `packages/materialx-cli` - command-line tool built with `yargs-file-commands`
 - `packages/materialx-three` - MaterialX to Three.js TSL compiler/runtime for Standard Surface-first workflows
-- `apps/materialx-previewer` - TanStack Start preview app for interactive MaterialX -> Three TSL diagnostics and rendering
+- `apps/viewer` - TanStack Start preview app for interactive MaterialX -> Three TSL diagnostics and rendering
 
 ## Tooling
 

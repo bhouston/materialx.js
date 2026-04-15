@@ -36,6 +36,8 @@ import {
   mx_ifgreatereq,
   mx_noise_float,
   mx_place2d,
+  mx_rotate2d,
+  mx_rotate3d,
   mx_ramplr,
   mx_ramptb,
   mx_rgbtohsv,
@@ -44,6 +46,8 @@ import {
   mx_splittb,
   mx_unifiednoise2d,
   mx_unifiednoise3d,
+  mx_timer,
+  mx_frame,
   mx_worley_noise_float,
   mul,
   normalMap,
@@ -621,6 +625,28 @@ const compileNode = (
       );
       break;
     }
+    case 'rotate2d': {
+      const inNode = resolveInputNode(node, 'in', vec2(0, 0), context, scopeGraph);
+      const amount = resolveInputNode(node, 'amount', 0, context, scopeGraph);
+      const pivot = resolveInputNode(node, 'pivot', vec2(0.5, 0.5), context, scopeGraph);
+      // three/tsl rotate2d is origin-based, so offset by pivot for MaterialX parity.
+      const centered = sub(inNode as never, pivot as never);
+      compiled = add(mx_rotate2d(centered as never, amount as never) as never, pivot as never);
+      break;
+    }
+    case 'rotate3d': {
+      const inNode = resolveInputNode(node, 'in', vec3(0, 0, 0), context, scopeGraph);
+      const amount = resolveInputNode(node, 'amount', 0, context, scopeGraph);
+      const axis = resolveInputNode(node, 'axis', vec3(0, 0, 1), context, scopeGraph);
+      compiled = mx_rotate3d(inNode as never, amount as never, axis as never);
+      break;
+    }
+    case 'time':
+      compiled = mx_timer();
+      break;
+    case 'frame':
+      compiled = mx_frame();
+      break;
     case 'ramplr': {
       const valueL = resolveInputNode(node, 'valuel', 0, context, scopeGraph);
       const valueR = resolveInputNode(node, 'valuer', 0, context, scopeGraph);

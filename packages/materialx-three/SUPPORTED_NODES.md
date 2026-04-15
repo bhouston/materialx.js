@@ -5,8 +5,8 @@ Generated from `@materialx-js/materialx` node registry.
 ## Summary
 
 - Total categories in registry: 223
-- Supported categories: 84
-- Unsupported categories: 139
+- Supported categories: 88
+- Unsupported categories: 135
 
 ## Supported
 
@@ -37,6 +37,7 @@ Generated from `@materialx-js/materialx` node registry.
 - `floor`
 - `fract`
 - `fractal3d`
+- `frame`
 - `heighttonormal`
 - `hextiledimage`
 - `hextilednormalmap`
@@ -71,6 +72,8 @@ Generated from `@materialx-js/materialx` node registry.
 - `refract`
 - `remap`
 - `rgbtohsv`
+- `rotate2d`
+- `rotate3d`
 - `round`
 - `safepower`
 - `saturate`
@@ -90,6 +93,7 @@ Generated from `@materialx-js/materialx` node registry.
 - `tan`
 - `texcoord`
 - `tiledimage`
+- `time`
 - `unifiednoise2d`
 - `unifiednoise3d`
 - `worleynoise2d`
@@ -149,7 +153,6 @@ Generated from `@materialx-js/materialx` node registry.
 - `flake2d`
 - `flake3d`
 - `fractal2d`
-- `frame`
 - `g18_rec709_to_lin_rec709`
 - `g22_ap1_to_lin_rec709`
 - `g22_rec709_to_lin_rec709`
@@ -202,8 +205,6 @@ Generated from `@materialx-js/materialx` node registry.
 - `randomcolor`
 - `randomfloat`
 - `rec709_display_to_lin_rec709`
-- `rotate2d`
-- `rotate3d`
 - `roughness_anisotropy`
 - `roughness_dual`
 - `sheen_bsdf`
@@ -221,7 +222,6 @@ Generated from `@materialx-js/materialx` node registry.
 - `tiledcircles`
 - `tiledcloverleafs`
 - `tiledhexagons`
-- `time`
 - `transformmatrix`
 - `transformnormal`
 - `transformpoint`

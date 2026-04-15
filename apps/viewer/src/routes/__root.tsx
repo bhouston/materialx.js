@@ -7,6 +7,9 @@ import Header from '../components/Header'
 import appCss from '../styles.css?url'
 
 export const Route = createRootRoute({
+  validateSearch: (search: Record<string, unknown>) => ({
+    capture: search.capture === '1' || search.capture === 'true' ? '1' : undefined,
+  }),
   head: () => ({
     meta: [
       {

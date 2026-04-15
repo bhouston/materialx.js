@@ -131,7 +131,7 @@ export const openViewerBrowserPage = async (baseUrl: string): Promise<{ browser:
     },
   })
   const start = Date.now()
-  const captureUrl = `${baseUrl}/?capture=1`
+  const captureUrl = `${baseUrl}/capture`
   while (true) {
     try {
       await page.goto(captureUrl, { waitUntil: 'domcontentloaded', timeout: 120_000 })
@@ -196,6 +196,24 @@ const waitForCanvasReady = async (page: Page): Promise<void> => {
   )
 }
 
+const waitForViewerSettled = async (page: Page): Promise<void> => {
+  await page.evaluate(async () => {
+    await new Promise<void>((resolve) => {
+      let frames = 0
+      const tick = () => {
+        frames += 1
+        if (frames >= 24) {
+          resolve()
+          return
+        }
+        window.requestAnimationFrame(tick)
+      }
+      window.requestAnimationFrame(tick)
+    })
+  })
+  await page.waitForTimeout(250)
+}
+
 export const loadSampleInViewer = async (page: Page, sample: ViewerSampleEntry): Promise<void> => {
   await page.locator('[data-testid="sample-select"]').selectOption(sample.id)
   await page.waitForFunction(
@@ -207,6 +225,7 @@ export const loadSampleInViewer = async (page: Page, sample: ViewerSampleEntry):
   )
   await waitForDiagnosticsUpdate(page)
   await waitForCanvasReady(page)
+  await waitForViewerSettled(page)
 }
 
 export const readViewerHealthReport = async (page: Page): Promise<ViewerHealthReport> => {
@@ -279,11 +298,19 @@ export const assertViewerHealthy = (sample: ViewerSampleEntry, report: ViewerHea
 }
 
 export const captureViewerWebp = async (page: Page): Promise<Buffer> => {
-  const snapshot = await page.evaluate(() => {
-    const sourceCanvas = document.querySelector('[data-testid="viewer-canvas"]') as HTMLCanvasElement | null
-    if (!sourceCanvas) {
-      throw new Error('Viewer canvas not found')
-    }
+  const target = page.locator('[data-testid="viewer-render-target"]')
+  await target.waitFor()
+  const pngBuffer = await target.screenshot({
+    type: 'png',
+  })
+  const webpDataUrl = await page.evaluate(async (pngBase64: string) => {
+    const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const entry = new Image()
+      entry.onload = () => resolve(entry)
+      entry.onerror = () => reject(new Error('Could not decode render target PNG'))
+      entry.src = `data:image/png;base64,${pngBase64}`
+    })
+
     const outputCanvas = document.createElement('canvas')
     outputCanvas.width = 512
     outputCanvas.height = 512
@@ -291,23 +318,15 @@ export const captureViewerWebp = async (page: Page): Promise<Buffer> => {
     if (!outputContext) {
       throw new Error('Could not create output canvas context')
     }
-    outputContext.drawImage(sourceCanvas, 0, 0, 512, 512)
-    const dataUrl = outputCanvas.toDataURL('image/webp', 1)
-    return {
-      width: outputCanvas.width,
-      height: outputCanvas.height,
-      dataUrl,
-    }
-  })
+    outputContext.drawImage(image, 0, 0, 512, 512)
+    return outputCanvas.toDataURL('image/webp', 1)
+  }, pngBuffer.toString('base64'))
 
-  if (snapshot.width !== 512 || snapshot.height !== 512) {
-    throw new Error(`Expected viewer canvas to be 512x512, got ${snapshot.width}x${snapshot.height}`)
-  }
-  const commaIndex = snapshot.dataUrl.indexOf(',')
+  const commaIndex = webpDataUrl.indexOf(',')
   if (commaIndex < 0) {
     throw new Error('Unexpected WebP data URL format')
   }
-  return Buffer.from(snapshot.dataUrl.slice(commaIndex + 1), 'base64')
+  return Buffer.from(webpDataUrl.slice(commaIndex + 1), 'base64')
 }
 
 export const writeSamplePreview = async (sample: ViewerSampleEntry, webp: Buffer): Promise<void> => {
@@ -318,11 +337,9 @@ export const writeSamplePreview = async (sample: ViewerSampleEntry, webp: Buffer
 
 export const computeBaselineDiffRatio = async (page: Page, sample: ViewerSampleEntry): Promise<number> => {
   const baselineUrl = `/examples/${sample.directory}/preview.webp`
-  return page.evaluate(async ({ url }) => {
-    const sourceCanvas = document.querySelector('[data-testid="viewer-canvas"]') as HTMLCanvasElement | null
-    if (!sourceCanvas) {
-      throw new Error('Viewer canvas not found')
-    }
+  const currentCapture = await page.locator('[data-testid="viewer-render-target"]').screenshot({ type: 'png' })
+  const currentDataUrl = `data:image/png;base64,${currentCapture.toString('base64')}`
+  return page.evaluate(async ({ url, currentUrl }) => {
     const loadImage = async (source: string): Promise<HTMLImageElement> =>
       new Promise((resolve, reject) => {
         const image = new Image()
@@ -332,21 +349,22 @@ export const computeBaselineDiffRatio = async (page: Page, sample: ViewerSampleE
       })
 
     const baseline = await loadImage(url)
+    const current = await loadImage(currentUrl)
     const baselineCanvas = document.createElement('canvas')
-    baselineCanvas.width = baseline.width
-    baselineCanvas.height = baseline.height
+    baselineCanvas.width = 512
+    baselineCanvas.height = 512
     const currentCanvas = document.createElement('canvas')
-    currentCanvas.width = baseline.width
-    currentCanvas.height = baseline.height
+    currentCanvas.width = 512
+    currentCanvas.height = 512
     const baselineContext = baselineCanvas.getContext('2d')
     const currentContext = currentCanvas.getContext('2d')
     if (!baselineContext || !currentContext) {
       throw new Error('Could not read canvas contexts')
     }
-    baselineContext.drawImage(baseline, 0, 0)
-    currentContext.drawImage(sourceCanvas, 0, 0, baseline.width, baseline.height)
-    const baselineData = baselineContext.getImageData(0, 0, baseline.width, baseline.height).data
-    const currentData = currentContext.getImageData(0, 0, baseline.width, baseline.height).data
+    baselineContext.drawImage(baseline, 0, 0, 512, 512)
+    currentContext.drawImage(current, 0, 0, 512, 512)
+    const baselineData = baselineContext.getImageData(0, 0, 512, 512).data
+    const currentData = currentContext.getImageData(0, 0, 512, 512).data
     let diffPixels = 0
     for (let i = 0; i < currentData.length; i += 4) {
       const rDiff = Math.abs(currentData[i] - baselineData[i])
@@ -358,6 +376,6 @@ export const computeBaselineDiffRatio = async (page: Page, sample: ViewerSampleE
       }
     }
 
-    return diffPixels / (baseline.width * baseline.height)
-  }, { url: baselineUrl })
+    return diffPixels / (512 * 512)
+  }, { url: baselineUrl, currentUrl: currentDataUrl })
 }

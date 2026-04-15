@@ -33,6 +33,21 @@ const openPbrSoapBubbleFixture = path.resolve(
   sourceDir,
   '../../../../MaterialX/resources/Materials/Examples/OpenPbr/open_pbr_soapbubble.mtlx'
 );
+const conditionalLogicFixture = path.resolve(
+  sourceDir,
+  '../../../../MaterialX/resources/Materials/TestSuite/stdlib/conditional/conditional_logic.mtlx'
+);
+const compositingFixture = path.resolve(
+  sourceDir,
+  '../../../../MaterialX/resources/Materials/TestSuite/stdlib/compositing/compositing.mtlx'
+);
+const matrixFixture = path.resolve(sourceDir, '../../../../MaterialX/resources/Materials/TestSuite/stdlib/math/matrix.mtlx');
+const vectorMathFixture = path.resolve(sourceDir, '../../../../MaterialX/resources/Materials/TestSuite/stdlib/math/vector_math.mtlx');
+const transformFixture = path.resolve(sourceDir, '../../../../MaterialX/resources/Materials/TestSuite/stdlib/math/transform.mtlx');
+const blackbodyFixture = path.resolve(sourceDir, '../../../../MaterialX/resources/Materials/TestSuite/pbrlib/bsdf/blackbody.mtlx');
+const artisticIorFixture = path.resolve(sourceDir, '../../../../MaterialX/resources/Materials/TestSuite/pbrlib/multioutput/multioutput.mtlx');
+const streamsFixture = path.resolve(sourceDir, '../../../../MaterialX/resources/Materials/TestSuite/stdlib/geometric/streams.mtlx');
+const toonShadeFixture = path.resolve(sourceDir, '../../../../MaterialX/resources/Materials/TestSuite/nprlib/toon_shade.mtlx');
 const gltfPbrDefaultFixture = path.resolve(sourceDir, '../../../../MaterialX/resources/Materials/Examples/GltfPbr/gltf_pbr_default.mtlx');
 const gltfPbrBoomBoxFixture = path.resolve(sourceDir, '../../../../MaterialX/resources/Materials/Examples/GltfPbr/gltf_pbr_boombox.mtlx');
 
@@ -481,5 +496,217 @@ describe('materialx-three compiler', () => {
     ]);
     expect(result.assignments.colorNode).toBeDefined();
     expect(result.assignments.roughnessNode).toBeDefined();
+  });
+
+  it('supports logical and compositing categories in upstream fixtures', () => {
+    const conditionalResult = compileFixture(conditionalLogicFixture);
+    expectCategoriesSupported(conditionalResult, ['and', 'or', 'xor']);
+
+    const compositingResult = compileFixture(compositingFixture);
+    expectCategoriesSupported(compositingResult, ['minus', 'difference', 'burn', 'dodge', 'unpremult']);
+  });
+
+  it('supports matrix and transform categories in upstream fixtures', () => {
+    const matrixResult = compileFixture(matrixFixture);
+    expectCategoriesSupported(matrixResult, ['creatematrix', 'transformmatrix']);
+
+    const vectorMathResult = compileFixture(vectorMathFixture);
+    expectCategoriesSupported(vectorMathResult, ['transpose', 'determinant']);
+
+    const transformResult = compileFixture(transformFixture);
+    expectCategoriesSupported(transformResult, ['transformpoint', 'transformvector', 'transformnormal', 'transformmatrix']);
+  });
+
+  it('supports geometric and pbr helper categories in upstream fixtures', () => {
+    const blackbodyResult = compileFixture(blackbodyFixture);
+    expectCategoriesSupported(blackbodyResult, ['blackbody']);
+
+    const artisticIorResult = compileFixture(artisticIorFixture);
+    expectCategoriesSupported(artisticIorResult, ['artistic_ior']);
+
+    const streamsResult = compileFixture(streamsFixture);
+    expectCategoriesSupported(streamsResult, ['tangent']);
+
+    const toonShadeResult = compileFixture(toonShadeFixture);
+    expectCategoriesSupported(toonShadeResult, ['viewdirection']);
+  });
+
+  it('supports newly added utility and helper node categories', () => {
+    const xml = `<?xml version="1.0"?>
+<materialx version="1.39">
+  <nodegraph name="NG_NewNodes">
+    <circle name="circle_mask" type="float">
+      <input name="radius" type="float" value="0.35" />
+    </circle>
+    <blackbody name="bb_color" type="color3">
+      <input name="temperature" type="float" value="5600" />
+    </blackbody>
+    <colorcorrect name="cc_color" type="color3">
+      <input name="in" type="color3" nodename="bb_color" />
+      <input name="hue" type="float" value="0.1" />
+      <input name="saturation" type="float" value="1.2" />
+      <input name="gamma" type="float" value="0.95" />
+      <input name="lift" type="float" value="0.05" />
+      <input name="gain" type="float" value="1.1" />
+      <input name="contrast" type="float" value="1.15" />
+      <input name="contrastpivot" type="float" value="0.5" />
+      <input name="exposure" type="float" value="0.2" />
+    </colorcorrect>
+    <open_pbr_anisotropy name="aniso_pair" type="vector2">
+      <input name="roughness" type="float" value="0.3" />
+      <input name="anisotropy" type="float" value="0.4" />
+    </open_pbr_anisotropy>
+    <separate2 name="aniso_sep" type="multioutput">
+      <input name="in" type="vector2" nodename="aniso_pair" />
+    </separate2>
+    <creatematrix name="basis" type="matrix33" nodedef="ND_creatematrix_vector3_matrix33">
+      <input name="in1" type="vector3" value="1.0, 0.0, 0.0" />
+      <input name="in2" type="vector3" value="0.0, 1.0, 0.0" />
+      <input name="in3" type="vector3" value="0.0, 0.0, 1.0" />
+    </creatematrix>
+    <transpose name="basis_t" type="matrix33">
+      <input name="in" type="matrix33" nodename="basis" />
+    </transpose>
+    <determinant name="basis_det" type="float">
+      <input name="in" type="matrix33" nodename="basis_t" />
+    </determinant>
+    <transformmatrix name="tm_vec3" type="vector3" nodedef="ND_transformmatrix_vector3">
+      <input name="in" type="vector3" value="0.2, 0.4, 0.8" />
+      <input name="mat" type="matrix33" nodename="basis_t" />
+    </transformmatrix>
+    <transformpoint name="tp" type="vector3">
+      <input name="in" type="vector3" nodename="tm_vec3" />
+      <input name="fromspace" type="string" value="world" />
+      <input name="tospace" type="string" value="object" />
+    </transformpoint>
+    <transformvector name="tv" type="vector3">
+      <input name="in" type="vector3" nodename="tp" />
+      <input name="fromspace" type="string" value="world" />
+      <input name="tospace" type="string" value="object" />
+    </transformvector>
+    <transformnormal name="tn" type="vector3">
+      <input name="in" type="vector3" nodename="tv" />
+      <input name="fromspace" type="string" value="world" />
+      <input name="tospace" type="string" value="object" />
+    </transformnormal>
+    <tangent name="tan_ws" type="vector3" />
+    <viewdirection name="view_ws" type="vector3" />
+    <bump name="bump_n" type="vector3">
+      <input name="height" type="float" nodename="circle_mask" />
+      <input name="scale" type="float" value="0.5" />
+      <input name="normal" type="vector3" nodename="tn" />
+      <input name="tangent" type="vector3" nodename="tan_ws" />
+      <input name="bitangent" type="vector3" nodename="tv" />
+    </bump>
+    <dotproduct name="tan_view_dot" type="float">
+      <input name="in1" type="vector3" nodename="tan_ws" />
+      <input name="in2" type="vector3" nodename="view_ws" />
+    </dotproduct>
+    <artistic_ior name="art" type="multioutput">
+      <input name="reflectivity" type="color3" value="0.85, 0.7, 0.6" />
+      <input name="edge_color" type="color3" value="0.9, 0.95, 1.0" />
+    </artistic_ior>
+    <luminance name="ior_luma" type="float">
+      <input name="in" type="color3" nodename="art" output="ior" />
+    </luminance>
+    <luminance name="ext_luma" type="float">
+      <input name="in" type="color3" nodename="art" output="extinction" />
+    </luminance>
+    <combine4 name="premult_src" type="color4">
+      <input name="in1" type="float" value="0.3" />
+      <input name="in2" type="float" value="0.4" />
+      <input name="in3" type="float" value="0.6" />
+      <input name="in4" type="float" value="0.5" />
+    </combine4>
+    <unpremult name="unpremult_color" type="color4">
+      <input name="in" type="color4" nodename="premult_src" />
+    </unpremult>
+    <minus name="minus_out" type="float">
+      <input name="fg" type="float" nodename="tan_view_dot" />
+      <input name="bg" type="float" nodename="ior_luma" />
+      <input name="mix" type="float" value="0.5" />
+    </minus>
+    <difference name="difference_out" type="float">
+      <input name="fg" type="float" nodename="minus_out" />
+      <input name="bg" type="float" nodename="ext_luma" />
+      <input name="mix" type="float" value="0.5" />
+    </difference>
+    <burn name="burn_out" type="float">
+      <input name="fg" type="float" nodename="difference_out" />
+      <input name="bg" type="float" nodename="circle_mask" />
+      <input name="mix" type="float" value="0.5" />
+    </burn>
+    <dodge name="dodge_out" type="float">
+      <input name="fg" type="float" nodename="burn_out" />
+      <input name="bg" type="float" nodename="ior_luma" />
+      <input name="mix" type="float" value="0.5" />
+    </dodge>
+    <ifgreater name="bool_left" type="boolean">
+      <input name="value1" type="float" nodename="dodge_out" />
+      <input name="value2" type="float" value="0.2" />
+      <input name="in1" type="boolean" value="true" />
+      <input name="in2" type="boolean" value="false" />
+    </ifgreater>
+    <ifgreater name="bool_right" type="boolean">
+      <input name="value1" type="float" nodename="basis_det" />
+      <input name="value2" type="float" value="0.0" />
+      <input name="in1" type="boolean" value="true" />
+      <input name="in2" type="boolean" value="false" />
+    </ifgreater>
+    <and name="logic_and" type="boolean">
+      <input name="in1" type="boolean" nodename="bool_left" />
+      <input name="in2" type="boolean" nodename="bool_right" />
+    </and>
+    <or name="logic_or" type="boolean">
+      <input name="in1" type="boolean" nodename="bool_left" />
+      <input name="in2" type="boolean" nodename="bool_right" />
+    </or>
+    <xor name="logic_xor" type="boolean">
+      <input name="in1" type="boolean" nodename="logic_and" />
+      <input name="in2" type="boolean" nodename="logic_or" />
+    </xor>
+    <output name="base_out" type="color3" nodename="cc_color" />
+    <output name="rough_out" type="float" nodename="aniso_sep" output="x" />
+    <output name="normal_out" type="vector3" nodename="bump_n" />
+  </nodegraph>
+  <standard_surface name="SR_NewNodes" type="surfaceshader">
+    <input name="base_color" type="color3" nodegraph="NG_NewNodes" output="base_out" />
+    <input name="specular_roughness" type="float" nodegraph="NG_NewNodes" output="rough_out" />
+    <input name="normal" type="vector3" nodegraph="NG_NewNodes" output="normal_out" />
+  </standard_surface>
+  <surfacematerial name="M_NewNodes" type="material">
+    <input name="surfaceshader" type="surfaceshader" nodename="SR_NewNodes" />
+  </surfacematerial>
+</materialx>`;
+    const result = compileMaterialXToTSL(parseMaterialX(xml));
+
+    expectCategoriesSupported(result, [
+      'open_pbr_anisotropy',
+      'and',
+      'or',
+      'xor',
+      'minus',
+      'dodge',
+      'difference',
+      'colorcorrect',
+      'circle',
+      'burn',
+      'bump',
+      'blackbody',
+      'artistic_ior',
+      'tangent',
+      'creatematrix',
+      'transpose',
+      'determinant',
+      'transformmatrix',
+      'transformnormal',
+      'transformpoint',
+      'transformvector',
+      'unpremult',
+      'viewdirection',
+    ]);
+    expect(result.assignments.colorNode).toBeDefined();
+    expect(result.assignments.roughnessNode).toBeDefined();
+    expect(result.assignments.normalNode).toBeDefined();
   });
 });

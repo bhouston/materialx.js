@@ -1,0 +1,1 @@
+Logic/compositing stress sample using and/or/xor, minus/difference/burn/dodge, colorcorrect, circle, and unpremult.

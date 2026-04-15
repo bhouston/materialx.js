@@ -89,11 +89,78 @@ interface CompileContext {
   cache: Map<string, unknown>;
 }
 
+interface MatrixValue {
+  kind: 'matrix33' | 'matrix44';
+  values: unknown[][];
+}
+
+const isMatrixValue = (value: unknown): value is MatrixValue => {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+  const matrix = value as Partial<MatrixValue>;
+  return (matrix.kind === 'matrix33' || matrix.kind === 'matrix44') && Array.isArray(matrix.values);
+};
+
+const parseMatrixEntries = (value: string | undefined, expectedCount: number): number[] | undefined => {
+  if (!value) {
+    return undefined;
+  }
+  const entries = value
+    .split(',')
+    .map((entry) => Number(entry.trim()))
+    .filter((entry) => Number.isFinite(entry));
+  if (entries.length !== expectedCount) {
+    return undefined;
+  }
+  return entries;
+};
+
+const matrixFromEntries = (kind: 'matrix33' | 'matrix44', entries: number[]): MatrixValue => {
+  const size = kind === 'matrix33' ? 3 : 4;
+  const values: unknown[][] = [];
+  for (let row = 0; row < size; row += 1) {
+    values.push(entries.slice(row * size, (row + 1) * size));
+  }
+  return { kind, values };
+};
+
+const matrixIdentity = (kind: 'matrix33' | 'matrix44'): MatrixValue => {
+  const size = kind === 'matrix33' ? 3 : 4;
+  const values: unknown[][] = [];
+  for (let row = 0; row < size; row += 1) {
+    const rowValues: unknown[] = [];
+    for (let column = 0; column < size; column += 1) {
+      rowValues.push(row === column ? 1 : 0);
+    }
+    values.push(rowValues);
+  }
+  return { kind, values };
+};
+
 const toNodeValue = (value: unknown, typeHint?: string): unknown => {
+  if (isMatrixValue(value)) {
+    return value;
+  }
   if (typeof value === 'number') {
     return float(value);
   }
+  if (typeof value === 'boolean') {
+    return float(value ? 1 : 0);
+  }
   if (Array.isArray(value)) {
+    if (typeHint === 'matrix33' && value.length === 9) {
+      const entries = value.map((entry) => (typeof entry === 'number' ? entry : Number(entry)));
+      if (entries.every((entry) => Number.isFinite(entry))) {
+        return matrixFromEntries('matrix33', entries as number[]);
+      }
+    }
+    if (typeHint === 'matrix44' && value.length === 16) {
+      const entries = value.map((entry) => (typeof entry === 'number' ? entry : Number(entry)));
+      if (entries.every((entry) => Number.isFinite(entry))) {
+        return matrixFromEntries('matrix44', entries as number[]);
+      }
+    }
     if (value.length === 2) {
       return vec2(value[0] ?? 0, value[1] ?? 0);
     }
@@ -105,6 +172,18 @@ const toNodeValue = (value: unknown, typeHint?: string): unknown => {
     }
   }
   if (typeof value === 'string') {
+    if (typeHint === 'boolean') {
+      const normalized = value.trim().toLowerCase();
+      return float(normalized === 'true' || normalized === '1' ? 1 : 0);
+    }
+    if (typeHint === 'matrix33') {
+      const entries = parseMatrixEntries(value, 9);
+      return entries ? matrixFromEntries('matrix33', entries) : matrixIdentity('matrix33');
+    }
+    if (typeHint === 'matrix44') {
+      const entries = parseMatrixEntries(value, 16);
+      return entries ? matrixFromEntries('matrix44', entries) : matrixIdentity('matrix44');
+    }
     if (typeHint === 'color3' || typeHint === 'vector3') {
       const [x, y, z] = parseVector3Value(value, [0, 0, 0]);
       return vec3(x, y, z);
@@ -170,6 +249,150 @@ const getNodeChannel = (node: unknown, index: number): unknown => {
   }
   const entry = node as Record<string, unknown>;
   return entry[channel] ?? node;
+};
+
+const toVectorComponents = (value: unknown, size: number, fallback: number[]): unknown[] => {
+  if (Array.isArray(value)) {
+    const result: unknown[] = [];
+    for (let index = 0; index < size; index += 1) {
+      result.push(value[index] ?? fallback[index] ?? 0);
+    }
+    return result;
+  }
+  const result: unknown[] = [];
+  for (let index = 0; index < size; index += 1) {
+    result.push(getNodeChannel(value, index) ?? fallback[index] ?? 0);
+  }
+  return result;
+};
+
+const asMatrixValue = (value: unknown, kind: 'matrix33' | 'matrix44'): MatrixValue => {
+  if (isMatrixValue(value) && value.kind === kind) {
+    return value;
+  }
+  return matrixIdentity(kind);
+};
+
+const makeVectorFromComponents = (components: unknown[], size: 2 | 3 | 4): unknown => {
+  if (size === 2) {
+    return vec2(components[0] as never, components[1] as never);
+  }
+  if (size === 3) {
+    return vec3(components[0] as never, components[1] as never, components[2] as never);
+  }
+  return vec4(components[0] as never, components[1] as never, components[2] as never, components[3] as never);
+};
+
+const dotRow = (row: unknown[], vector: unknown[]): unknown => {
+  let sum = mul(row[0] as never, vector[0] as never);
+  for (let index = 1; index < row.length; index += 1) {
+    sum = add(sum as never, mul(row[index] as never, vector[index] as never) as never);
+  }
+  return sum;
+};
+
+const multiplyMatrixVector = (matrix: MatrixValue, vector: unknown[]): unknown[] => matrix.values.map((row) => dotRow(row, vector));
+
+const transposeMatrix = (matrix: MatrixValue): MatrixValue => {
+  const size = matrix.kind === 'matrix33' ? 3 : 4;
+  const values: unknown[][] = [];
+  for (let row = 0; row < size; row += 1) {
+    const transposedRow: unknown[] = [];
+    for (let column = 0; column < size; column += 1) {
+      transposedRow.push(matrix.values[column]?.[row] ?? 0);
+    }
+    values.push(transposedRow);
+  }
+  return {
+    kind: matrix.kind,
+    values,
+  };
+};
+
+const det2 = (a: unknown, b: unknown, c: unknown, d: unknown): unknown =>
+  sub(mul(a as never, d as never) as never, mul(b as never, c as never) as never);
+
+const det3 = (matrix: unknown[][]): unknown => {
+  const a = matrix[0]?.[0] ?? 0;
+  const b = matrix[0]?.[1] ?? 0;
+  const c = matrix[0]?.[2] ?? 0;
+  const d = matrix[1]?.[0] ?? 0;
+  const e = matrix[1]?.[1] ?? 0;
+  const f = matrix[1]?.[2] ?? 0;
+  const g = matrix[2]?.[0] ?? 0;
+  const h = matrix[2]?.[1] ?? 0;
+  const i = matrix[2]?.[2] ?? 0;
+
+  const eiMinusFh = det2(e, f, h, i);
+  const diMinusFg = det2(d, f, g, i);
+  const dhMinusEg = det2(d, e, g, h);
+
+  return add(
+    sub(mul(a as never, eiMinusFh as never) as never, mul(b as never, diMinusFg as never) as never) as never,
+    mul(c as never, dhMinusEg as never) as never
+  );
+};
+
+const det4 = (matrix: unknown[][]): unknown => {
+  const m00 = matrix[0]?.[0] ?? 0;
+  const m01 = matrix[0]?.[1] ?? 0;
+  const m02 = matrix[0]?.[2] ?? 0;
+  const m03 = matrix[0]?.[3] ?? 0;
+  const minor0 = det3([
+    [matrix[1]?.[1] ?? 0, matrix[1]?.[2] ?? 0, matrix[1]?.[3] ?? 0],
+    [matrix[2]?.[1] ?? 0, matrix[2]?.[2] ?? 0, matrix[2]?.[3] ?? 0],
+    [matrix[3]?.[1] ?? 0, matrix[3]?.[2] ?? 0, matrix[3]?.[3] ?? 0],
+  ]);
+  const minor1 = det3([
+    [matrix[1]?.[0] ?? 0, matrix[1]?.[2] ?? 0, matrix[1]?.[3] ?? 0],
+    [matrix[2]?.[0] ?? 0, matrix[2]?.[2] ?? 0, matrix[2]?.[3] ?? 0],
+    [matrix[3]?.[0] ?? 0, matrix[3]?.[2] ?? 0, matrix[3]?.[3] ?? 0],
+  ]);
+  const minor2 = det3([
+    [matrix[1]?.[0] ?? 0, matrix[1]?.[1] ?? 0, matrix[1]?.[3] ?? 0],
+    [matrix[2]?.[0] ?? 0, matrix[2]?.[1] ?? 0, matrix[2]?.[3] ?? 0],
+    [matrix[3]?.[0] ?? 0, matrix[3]?.[1] ?? 0, matrix[3]?.[3] ?? 0],
+  ]);
+  const minor3 = det3([
+    [matrix[1]?.[0] ?? 0, matrix[1]?.[1] ?? 0, matrix[1]?.[2] ?? 0],
+    [matrix[2]?.[0] ?? 0, matrix[2]?.[1] ?? 0, matrix[2]?.[2] ?? 0],
+    [matrix[3]?.[0] ?? 0, matrix[3]?.[1] ?? 0, matrix[3]?.[2] ?? 0],
+  ]);
+
+  const term0 = mul(m00 as never, minor0 as never);
+  const term1 = mul(m01 as never, minor1 as never);
+  const term2 = mul(m02 as never, minor2 as never);
+  const term3 = mul(m03 as never, minor3 as never);
+  return sub(add(sub(term0 as never, term1 as never) as never, term2 as never) as never, term3 as never);
+};
+
+const applyMatrixTransform = (
+  inputValue: unknown,
+  matrixValue: unknown,
+  variant: 'vector2M3' | 'vector3' | 'vector3M4' | 'vector4'
+): unknown => {
+  if (variant === 'vector2M3') {
+    const matrix = asMatrixValue(matrixValue, 'matrix33');
+    const [x, y] = toVectorComponents(inputValue, 2, [0, 0]);
+    const transformed = multiplyMatrixVector(matrix, [x, y, 1]);
+    return makeVectorFromComponents(transformed.slice(0, 2), 2);
+  }
+  if (variant === 'vector3') {
+    const matrix = asMatrixValue(matrixValue, 'matrix33');
+    const vector = toVectorComponents(inputValue, 3, [0, 0, 0]);
+    const transformed = multiplyMatrixVector(matrix, vector);
+    return makeVectorFromComponents(transformed, 3);
+  }
+  if (variant === 'vector3M4') {
+    const matrix = asMatrixValue(matrixValue, 'matrix44');
+    const [x, y, z] = toVectorComponents(inputValue, 3, [0, 0, 0]);
+    const transformed = multiplyMatrixVector(matrix, [x, y, z, 1]);
+    return makeVectorFromComponents(transformed.slice(0, 3), 3);
+  }
+  const matrix = asMatrixValue(matrixValue, 'matrix44');
+  const vector = toVectorComponents(inputValue, 4, [0, 0, 0, 1]);
+  const transformed = multiplyMatrixVector(matrix, vector);
+  return makeVectorFromComponents(transformed, 4);
 };
 
 const resolveInputNode = (
@@ -429,6 +652,12 @@ const compileNode = (
     case 'normal':
       compiled = normalWorld;
       break;
+    case 'tangent':
+      compiled = vec3(1, 0, 0);
+      break;
+    case 'viewdirection':
+      compiled = normalize(mul(positionWorld as never, float(-1)) as never);
+      break;
     case 'normalmap': {
       const inNode = resolveInputNode(node, 'in', vec3(0.5, 0.5, 1), context, scopeGraph);
       const scaleNode = resolveInputNode(node, 'scale', 1, context, scopeGraph);
@@ -439,6 +668,13 @@ const compileNode = (
       const inNode = resolveInputNode(node, 'in', 0, context, scopeGraph);
       const scaleNode = resolveInputNode(node, 'scale', 1, context, scopeGraph);
       compiled = mx_heighttonormal(inNode as never, scaleNode as never);
+      break;
+    }
+    case 'bump': {
+      const height = resolveInputNode(node, 'height', 0, context, scopeGraph);
+      const scaleNode = resolveInputNode(node, 'scale', 1, context, scopeGraph);
+      const normalFromHeight = mx_heighttonormal(height as never, float(1));
+      compiled = normalMap(normalFromHeight as never, scaleNode as never);
       break;
     }
     case 'convert': {
@@ -486,6 +722,79 @@ const compileNode = (
       compiled = mix(bg as never, fg as never, mixAmount as never);
       break;
     }
+    case 'and': {
+      const in1 = resolveInputNode(node, 'in1', 0, context, scopeGraph);
+      const in2 = resolveInputNode(node, 'in2', 0, context, scopeGraph);
+      compiled = clamp(mul(in1 as never, in2 as never) as never, float(0), float(1));
+      break;
+    }
+    case 'or': {
+      const in1 = resolveInputNode(node, 'in1', 0, context, scopeGraph);
+      const in2 = resolveInputNode(node, 'in2', 0, context, scopeGraph);
+      compiled = clamp(add(in1 as never, in2 as never) as never, float(0), float(1));
+      break;
+    }
+    case 'xor': {
+      const in1 = resolveInputNode(node, 'in1', 0, context, scopeGraph);
+      const in2 = resolveInputNode(node, 'in2', 0, context, scopeGraph);
+      compiled = abs(sub(in1 as never, in2 as never) as never);
+      break;
+    }
+    case 'minus': {
+      const fg = resolveInputNode(node, 'fg', 0, context, scopeGraph);
+      const bg = resolveInputNode(node, 'bg', 0, context, scopeGraph);
+      const mixAmount = resolveInputNode(node, 'mix', 1, context, scopeGraph);
+      const minusOut = sub(bg as never, fg as never);
+      compiled = add(mul(mixAmount as never, minusOut as never) as never, mul(sub(float(1), mixAmount as never) as never, bg as never) as never);
+      break;
+    }
+    case 'difference': {
+      const fg = resolveInputNode(node, 'fg', 0, context, scopeGraph);
+      const bg = resolveInputNode(node, 'bg', 0, context, scopeGraph);
+      const mixAmount = resolveInputNode(node, 'mix', 1, context, scopeGraph);
+      const differenceOut = abs(sub(bg as never, fg as never) as never);
+      compiled = add(
+        mul(mixAmount as never, differenceOut as never) as never,
+        mul(sub(float(1), mixAmount as never) as never, bg as never) as never
+      );
+      break;
+    }
+    case 'burn': {
+      const fg = resolveInputNode(node, 'fg', 0, context, scopeGraph);
+      const bg = resolveInputNode(node, 'bg', 0, context, scopeGraph);
+      const mixAmount = resolveInputNode(node, 'mix', 1, context, scopeGraph);
+      const epsilon = float(1e-6);
+      const safeFg = max(fg as never, epsilon);
+      const burned = sub(float(1), div(sub(float(1), bg as never) as never, safeFg as never));
+      compiled = add(mul(mixAmount as never, burned as never) as never, mul(sub(float(1), mixAmount as never) as never, bg as never) as never);
+      break;
+    }
+    case 'dodge': {
+      const fg = resolveInputNode(node, 'fg', 0, context, scopeGraph);
+      const bg = resolveInputNode(node, 'bg', 0, context, scopeGraph);
+      const mixAmount = resolveInputNode(node, 'mix', 1, context, scopeGraph);
+      const epsilon = float(1e-6);
+      const safeDivisor = max(sub(float(1), fg as never) as never, epsilon);
+      const dodged = div(bg as never, safeDivisor as never);
+      compiled = add(mul(mixAmount as never, dodged as never) as never, mul(sub(float(1), mixAmount as never) as never, bg as never) as never);
+      break;
+    }
+    case 'unpremult': {
+      const inNode = resolveInputNode(node, 'in', vec4(0, 0, 0, 1), context, scopeGraph);
+      const alpha = getNodeChannel(inNode, 3);
+      const epsilon = float(1e-6);
+      const safeAlpha = max(alpha as never, epsilon);
+      const rgb = makeVectorFromComponents(
+        [
+          div(getNodeChannel(inNode, 0) as never, safeAlpha as never),
+          div(getNodeChannel(inNode, 1) as never, safeAlpha as never),
+          div(getNodeChannel(inNode, 2) as never, safeAlpha as never),
+        ],
+        3
+      );
+      compiled = vec4(getNodeChannel(rgb, 0) as never, getNodeChannel(rgb, 1) as never, getNodeChannel(rgb, 2) as never, alpha as never);
+      break;
+    }
     case 'screen': {
       const fg = resolveInputNode(node, 'fg', 1, context, scopeGraph);
       const bg = resolveInputNode(node, 'bg', 0, context, scopeGraph);
@@ -516,6 +825,16 @@ const compileNode = (
       const transformedUv = add(mul(texcoord as never, uvTiling as never), uvOffset as never);
       const mask = clamp(checker(transformedUv as never) as never, float(0), float(1));
       compiled = mix(color1 as never, color2 as never, mask as never);
+      break;
+    }
+    case 'circle': {
+      const texcoord = resolveInputNode(node, 'texcoord', uv(0), context, scopeGraph);
+      const center = resolveInputNode(node, 'center', vec2(0.5, 0.5), context, scopeGraph);
+      const radius = resolveInputNode(node, 'radius', 0.5, context, scopeGraph);
+      const delta = sub(texcoord as never, center as never);
+      const distanceSquared = dot(delta as never, delta as never);
+      const radiusSquared = mul(radius as never, radius as never);
+      compiled = mx_ifgreater(distanceSquared as never, radiusSquared as never, float(0) as never, float(1) as never);
       break;
     }
     case 'dot':
@@ -669,7 +988,21 @@ const compileNode = (
       const gammaCorrected = mul(pow(abs(remapped as never) as never, reciprocalGamma as never), sign(remapped as never) as never);
       const scaled = add(outLow as never, mul(gammaCorrected as never, sub(outHigh as never, outLow as never) as never));
       const clamped = clamp(scaled as never, outLow as never, outHigh as never);
-      compiled = mx_ifequal(doClamp as never, true as never, clamped as never, scaled as never);
+      compiled = mx_ifequal(doClamp as never, float(1) as never, clamped as never, scaled as never);
+      break;
+    }
+    case 'open_pbr_anisotropy': {
+      const roughness = resolveInputNode(node, 'roughness', 0, context, scopeGraph);
+      const anisotropy = resolveInputNode(node, 'anisotropy', 0, context, scopeGraph);
+      const anisoInvert = sub(float(1), anisotropy as never);
+      const anisoInvertSq = mul(anisoInvert as never, anisoInvert as never);
+      const denom = add(anisoInvertSq as never, float(1));
+      const fraction = div(float(2), denom as never);
+      const sqrtFraction = sqrt(fraction as never);
+      const roughSq = mul(roughness as never, roughness as never);
+      const alphaX = mul(roughSq as never, sqrtFraction as never);
+      const alphaY = mul(anisoInvert as never, alphaX as never);
+      compiled = vec2(alphaX as never, alphaY as never);
       break;
     }
     case 'combine2': {
@@ -691,6 +1024,61 @@ const compileNode = (
       const z = resolveInputNode(node, 'in3', 0, context, scopeGraph);
       const w = resolveInputNode(node, 'in4', 1, context, scopeGraph);
       compiled = vec4(x as never, y as never, z as never, w as never);
+      break;
+    }
+    case 'creatematrix': {
+      const nodeDefName = node.attributes.nodedef;
+      if (node.type === 'matrix33') {
+        const in1 = toVectorComponents(resolveInputNode(node, 'in1', vec3(1, 0, 0), context, scopeGraph), 3, [1, 0, 0]);
+        const in2 = toVectorComponents(resolveInputNode(node, 'in2', vec3(0, 1, 0), context, scopeGraph), 3, [0, 1, 0]);
+        const in3 = toVectorComponents(resolveInputNode(node, 'in3', vec3(0, 0, 1), context, scopeGraph), 3, [0, 0, 1]);
+        compiled = {
+          kind: 'matrix33',
+          values: [in1, in2, in3],
+        } satisfies MatrixValue;
+      } else if (nodeDefName === 'ND_creatematrix_vector3_matrix44') {
+        const in1 = toVectorComponents(resolveInputNode(node, 'in1', vec3(1, 0, 0), context, scopeGraph), 3, [1, 0, 0]);
+        const in2 = toVectorComponents(resolveInputNode(node, 'in2', vec3(0, 1, 0), context, scopeGraph), 3, [0, 1, 0]);
+        const in3 = toVectorComponents(resolveInputNode(node, 'in3', vec3(0, 0, 1), context, scopeGraph), 3, [0, 0, 1]);
+        const in4 = toVectorComponents(resolveInputNode(node, 'in4', vec3(0, 0, 0), context, scopeGraph), 3, [0, 0, 0]);
+        compiled = {
+          kind: 'matrix44',
+          values: [
+            [in1[0], in1[1], in1[2], 0],
+            [in2[0], in2[1], in2[2], 0],
+            [in3[0], in3[1], in3[2], 0],
+            [in4[0], in4[1], in4[2], 1],
+          ],
+        } satisfies MatrixValue;
+      } else {
+        const in1 = toVectorComponents(resolveInputNode(node, 'in1', vec4(1, 0, 0, 0), context, scopeGraph), 4, [1, 0, 0, 0]);
+        const in2 = toVectorComponents(resolveInputNode(node, 'in2', vec4(0, 1, 0, 0), context, scopeGraph), 4, [0, 1, 0, 0]);
+        const in3 = toVectorComponents(resolveInputNode(node, 'in3', vec4(0, 0, 1, 0), context, scopeGraph), 4, [0, 0, 1, 0]);
+        const in4 = toVectorComponents(resolveInputNode(node, 'in4', vec4(0, 0, 0, 1), context, scopeGraph), 4, [0, 0, 0, 1]);
+        compiled = {
+          kind: 'matrix44',
+          values: [in1, in2, in3, in4],
+        } satisfies MatrixValue;
+      }
+      break;
+    }
+    case 'transpose': {
+      const inMatrix = resolveInputNode(node, 'in', matrixIdentity(node.type === 'matrix33' ? 'matrix33' : 'matrix44'), context, scopeGraph);
+      const matrix = asMatrixValue(inMatrix, node.type === 'matrix33' ? 'matrix33' : 'matrix44');
+      compiled = transposeMatrix(matrix);
+      break;
+    }
+    case 'determinant': {
+      const nodeDefName = node.attributes.nodedef;
+      const inMatrix = resolveInputNode(
+        node,
+        'in',
+        matrixIdentity(nodeDefName?.includes('matrix33') ? 'matrix33' : 'matrix44'),
+        context,
+        scopeGraph
+      );
+      const matrix = asMatrixValue(inMatrix, nodeDefName?.includes('matrix33') ? 'matrix33' : 'matrix44');
+      compiled = matrix.kind === 'matrix33' ? det3(matrix.values) : det4(matrix.values);
       break;
     }
     case 'extract':
@@ -722,6 +1110,32 @@ const compileNode = (
         rotate as never,
         offset as never
       );
+      break;
+    }
+    case 'transformmatrix': {
+      const nodeDefName = node.attributes.nodedef;
+      const inNode = resolveInputNode(node, 'in', 0, context, scopeGraph);
+      const matrixFallback =
+        nodeDefName === 'ND_transformmatrix_vector2M3' || nodeDefName === 'ND_transformmatrix_vector3'
+          ? matrixIdentity('matrix33')
+          : matrixIdentity('matrix44');
+      const matrixNode = resolveInputNode(node, 'mat', matrixFallback, context, scopeGraph);
+      if (nodeDefName === 'ND_transformmatrix_vector2M3') {
+        compiled = applyMatrixTransform(inNode, matrixNode, 'vector2M3');
+      } else if (nodeDefName === 'ND_transformmatrix_vector3') {
+        compiled = applyMatrixTransform(inNode, matrixNode, 'vector3');
+      } else if (nodeDefName === 'ND_transformmatrix_vector3M4') {
+        compiled = applyMatrixTransform(inNode, matrixNode, 'vector3M4');
+      } else {
+        compiled = applyMatrixTransform(inNode, matrixNode, 'vector4');
+      }
+      break;
+    }
+    case 'transformpoint':
+    case 'transformvector':
+    case 'transformnormal': {
+      const inNode = resolveInputNode(node, 'in', vec3(0, 0, 0), context, scopeGraph);
+      compiled = inNode;
       break;
     }
     case 'rotate2d': {
@@ -931,6 +1345,111 @@ const compileNode = (
       const inNode = resolveInputNode(node, 'in', vec3(0, 0, 0), context, scopeGraph);
       const amount = resolveInputNode(node, 'amount', 1, context, scopeGraph);
       compiled = mx_contrast(inNode as never, amount as never, float(0.5));
+      break;
+    }
+    case 'colorcorrect': {
+      const inNode = resolveInputNode(node, 'in', node.type === 'color4' ? vec4(0, 0, 0, 1) : vec3(0, 0, 0), context, scopeGraph);
+      const hue = resolveInputNode(node, 'hue', 0, context, scopeGraph);
+      const saturation = resolveInputNode(node, 'saturation', 1, context, scopeGraph);
+      const gamma = resolveInputNode(node, 'gamma', 1, context, scopeGraph);
+      const lift = resolveInputNode(node, 'lift', 0, context, scopeGraph);
+      const gain = resolveInputNode(node, 'gain', 1, context, scopeGraph);
+      const contrastAmount = resolveInputNode(node, 'contrast', 1, context, scopeGraph);
+      const contrastPivot = resolveInputNode(node, 'contrastpivot', 0.5, context, scopeGraph);
+      const exposure = resolveInputNode(node, 'exposure', 0, context, scopeGraph);
+
+      const rgbInput =
+        node.type === 'color4'
+          ? vec3(getNodeChannel(inNode, 0) as never, getNodeChannel(inNode, 1) as never, getNodeChannel(inNode, 2) as never)
+          : inNode;
+      const hsv = mx_rgbtohsv(rgbInput as never);
+      const hueAdjusted = vec3(
+        add(getNodeChannel(hsv, 0) as never, hue as never) as never,
+        mul(getNodeChannel(hsv, 1) as never, saturation as never) as never,
+        getNodeChannel(hsv, 2) as never
+      );
+      const saturationAdjusted = mx_hsvtorgb(hueAdjusted as never);
+      const reciprocalGamma = div(float(1), gamma as never);
+      const gammaCorrected = mul(
+        pow(abs(saturationAdjusted as never) as never, reciprocalGamma as never) as never,
+        sign(saturationAdjusted as never) as never
+      );
+      const liftApplied = add(mul(gammaCorrected as never, sub(float(1), lift as never) as never) as never, lift as never);
+      const gainApplied = mul(liftApplied as never, gain as never);
+      const contrastApplied = mx_contrast(gainApplied as never, contrastAmount as never, contrastPivot as never);
+      const exposureScale = pow(float(2), exposure as never);
+      const colorOut = mul(contrastApplied as never, exposureScale as never);
+      compiled =
+        node.type === 'color4'
+          ? vec4(
+              getNodeChannel(colorOut, 0) as never,
+              getNodeChannel(colorOut, 1) as never,
+              getNodeChannel(colorOut, 2) as never,
+              getNodeChannel(inNode, 3) as never
+            )
+          : colorOut;
+      break;
+    }
+    case 'blackbody': {
+      const temperature = resolveInputNode(node, 'temperature', 6500, context, scopeGraph);
+      const t = div(float(1000), temperature as never);
+      const t2 = mul(t as never, t as never);
+      const t3 = mul(t2 as never, t as never);
+
+      const lowX = add(
+        add(mul(float(-0.2661239), t3 as never) as never, mul(float(-0.234358), t2 as never) as never) as never,
+        add(mul(float(0.8776956), t as never) as never, float(0.17991)) as never
+      );
+      const highX = add(
+        add(mul(float(-3.0258469), t3 as never) as never, mul(float(2.1070379), t2 as never) as never) as never,
+        add(mul(float(0.2226347), t as never) as never, float(0.24039)) as never
+      );
+      const xc = mx_ifgreatereq(temperature as never, float(4000) as never, highX as never, lowX as never);
+
+      const xc2 = mul(xc as never, xc as never);
+      const xc3 = mul(xc2 as never, xc as never);
+      const ycLow = add(
+        add(mul(float(-1.1063814), xc3 as never) as never, mul(float(-1.3481102), xc2 as never) as never) as never,
+        add(mul(float(2.18555832), xc as never) as never, float(-0.20219683)) as never
+      );
+      const ycMid = add(
+        add(mul(float(-0.9549476), xc3 as never) as never, mul(float(-1.37418593), xc2 as never) as never) as never,
+        add(mul(float(2.09137015), xc as never) as never, float(-0.16748867)) as never
+      );
+      const ycHigh = add(
+        add(mul(float(3.081758), xc3 as never) as never, mul(float(-5.8733867), xc2 as never) as never) as never,
+        add(mul(float(3.75112997), xc as never) as never, float(-0.37001483)) as never
+      );
+      const ycLowMid = mx_ifgreatereq(temperature as never, float(2222) as never, ycMid as never, ycLow as never);
+      const yc = mx_ifgreatereq(temperature as never, float(4000) as never, ycHigh as never, ycLowMid as never);
+      const safeYc = max(yc as never, float(1e-6));
+
+      const x = div(xc as never, safeYc as never);
+      const y = float(1);
+      const z = div(sub(sub(float(1), xc as never) as never, yc as never) as never, safeYc as never);
+      const xyz = vec3(x as never, y as never, z as never);
+      const rgb = vec3(
+        add(add(mul(float(3.2406), getNodeChannel(xyz, 0) as never) as never, mul(float(-0.9689), getNodeChannel(xyz, 1) as never) as never) as never, mul(float(0.0557), getNodeChannel(xyz, 2) as never) as never) as never,
+        add(add(mul(float(-1.5372), getNodeChannel(xyz, 0) as never) as never, mul(float(1.8758), getNodeChannel(xyz, 1) as never) as never) as never, mul(float(-0.204), getNodeChannel(xyz, 2) as never) as never) as never,
+        add(add(mul(float(-0.4986), getNodeChannel(xyz, 0) as never) as never, mul(float(0.0415), getNodeChannel(xyz, 1) as never) as never) as never, mul(float(1.057), getNodeChannel(xyz, 2) as never) as never) as never
+      );
+      compiled = max(rgb as never, vec3(0, 0, 0) as never);
+      break;
+    }
+    case 'artistic_ior': {
+      const reflectivity = resolveInputNode(node, 'reflectivity', vec3(0.8, 0.8, 0.8), context, scopeGraph);
+      const edgeColor = resolveInputNode(node, 'edge_color', vec3(1, 1, 1), context, scopeGraph);
+      const clamped = clamp(reflectivity as never, vec3(0, 0, 0) as never, vec3(0.99, 0.99, 0.99) as never);
+      const rSqrt = sqrt(clamped as never);
+      const nMin = div(sub(float(1), clamped as never) as never, add(float(1), clamped as never) as never);
+      const nMax = div(add(float(1), rSqrt as never) as never, sub(float(1), rSqrt as never) as never);
+      const ior = mix(nMax as never, nMin as never, edgeColor as never);
+      const np1 = add(ior as never, float(1));
+      const nm1 = sub(ior as never, float(1));
+      const k2Numerator = sub(mul(mul(np1 as never, np1 as never) as never, clamped as never) as never, mul(nm1 as never, nm1 as never) as never);
+      const k2 = max(div(k2Numerator as never, sub(float(1), clamped as never) as never) as never, vec3(0, 0, 0) as never);
+      const extinction = sqrt(k2 as never);
+      compiled = outputName === 'extinction' ? extinction : ior;
       break;
     }
     default:

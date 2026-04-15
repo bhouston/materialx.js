@@ -5,21 +5,28 @@ Generated from `@materialx-js/materialx` node registry.
 ## Summary
 
 - Total categories in registry: 223
-- Supported categories: 94
-- Unsupported categories: 129
+- Supported categories: 117
+- Unsupported categories: 106
 
 ## Supported
 
 - `absval`
 - `acos`
 - `add`
+- `and`
+- `artistic_ior`
 - `asin`
 - `atan2`
+- `blackbody`
+- `bump`
+- `burn`
 - `ceil`
 - `cellnoise2d`
 - `cellnoise3d`
 - `checkerboard`
+- `circle`
 - `clamp`
+- `colorcorrect`
 - `combine2`
 - `combine3`
 - `combine4`
@@ -27,9 +34,13 @@ Generated from `@materialx-js/materialx` node registry.
 - `contrast`
 - `convert`
 - `cos`
+- `creatematrix`
 - `crossproduct`
+- `determinant`
+- `difference`
 - `distance`
 - `divide`
+- `dodge`
 - `dot`
 - `dotproduct`
 - `exp`
@@ -58,6 +69,7 @@ Generated from `@materialx-js/materialx` node registry.
 - `magnitude`
 - `max`
 - `min`
+- `minus`
 - `mix`
 - `modulo`
 - `multiply`
@@ -66,7 +78,9 @@ Generated from `@materialx-js/materialx` node registry.
 - `normal`
 - `normalize`
 - `normalmap`
+- `open_pbr_anisotropy`
 - `open_pbr_surface`
+- `or`
 - `overlay`
 - `place2d`
 - `position`
@@ -97,13 +111,22 @@ Generated from `@materialx-js/materialx` node registry.
 - `subtract`
 - `surfacematerial`
 - `tan`
+- `tangent`
 - `texcoord`
 - `tiledimage`
 - `time`
+- `transformmatrix`
+- `transformnormal`
+- `transformpoint`
+- `transformvector`
+- `transpose`
 - `unifiednoise2d`
 - `unifiednoise3d`
+- `unpremult`
+- `viewdirection`
 - `worleynoise2d`
 - `worleynoise3d`
+- `xor`
 
 ## Unsupported
 
@@ -127,34 +150,23 @@ Generated from `@materialx-js/materialx` node registry.
 - `absorption_vdf`
 - `acescg_to_lin_rec709`
 - `adobergb_to_lin_rec709`
-- `and`
 - `anisotropic_vdf`
-- `artistic_ior`
 - `bitangent`
-- `blackbody`
 - `blur`
-- `bump`
 - `burley_diffuse_bsdf`
-- `burn`
 - `chiang_hair_absorption_from_color`
 - `chiang_hair_bsdf`
 - `chiang_hair_roughness`
-- `circle`
 - `cloverleaf`
-- `colorcorrect`
 - `conductor_bsdf`
 - `conical_edf`
-- `creatematrix`
 - `crosshatch`
 - `deon_hair_absorption_from_melanin`
-- `determinant`
 - `dielectric_bsdf`
-- `difference`
 - `directional_light`
 - `disjointover`
 - `disney_principled`
 - `displacement`
-- `dodge`
 - `facingratio`
 - `flake2d`
 - `flake3d`
@@ -184,12 +196,9 @@ Generated from `@materialx-js/materialx` node registry.
 - `mask`
 - `matte`
 - `measured_edf`
-- `minus`
 - `nodegraph`
 - `not`
-- `open_pbr_anisotropy`
 - `open_pbr_surface_to_standard_surface`
-- `or`
 - `oren_nayar_diffuse_bsdf`
 - `osl_set_ci`
 - `out`
@@ -218,22 +227,13 @@ Generated from `@materialx-js/materialx` node registry.
 - `surface`
 - `surface_unlit`
 - `switch`
-- `tangent`
 - `tiledcircles`
 - `tiledcloverleafs`
 - `tiledhexagons`
-- `transformmatrix`
-- `transformnormal`
-- `transformpoint`
-- `transformvector`
 - `translucent_bsdf`
-- `transpose`
 - `trianglewave`
 - `triplanarprojection`
 - `uniform_edf`
-- `unpremult`
-- `viewdirection`
 - `volume`
 - `volumematerial`
-- `xor`
 

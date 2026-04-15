@@ -64,7 +64,9 @@ export const buildStandardSurfaceAssignments = (
   const transmissionDepth = hasInput('transmission_depth')
     ? helpers.getInputNode(surfaceNode, 'transmission_depth', undefined)
     : undefined;
-  const ior = helpers.getInputNode(surfaceNode, 'specular_IOR', 1.5);
+  const ior = hasInput('specular_IOR')
+    ? helpers.getInputNode(surfaceNode, 'specular_IOR', 1.5)
+    : helpers.getInputNode(surfaceNode, 'ior', 1.5);
   const thinFilmThickness = helpers.getInputNode(surfaceNode, 'thin_film_thickness', 0);
   const thinFilmIOR = helpers.getInputNode(
     surfaceNode,

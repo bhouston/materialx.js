@@ -8,7 +8,7 @@ import type { MaterialXThreeCompileOptions, MaterialXThreeCompileResult, Materia
 import { resolveInputNode } from './compile-node.js';
 import type { CompileContext } from './internal-types.js';
 import { readInput } from './inputs.js';
-import { getCoveredCategories, warnGltfPbrLimitations, warnOpenPbrLimitations } from './warnings.js';
+import { getCoveredCategories, warnGltfPbrLimitations, warnOpenPbrLimitations, warnStandardSurfaceLimitations } from './warnings.js';
 
 const findMaterialNode = (document: MaterialXDocument, materialName?: string): MaterialXNode | undefined => {
   const materials = document.nodes.filter((node) => node.category === 'surfacematerial');
@@ -95,10 +95,11 @@ export const compileMaterialXToTSL = (
         ? buildOpenPbrSurfaceAssignments(surfaceShader.node, { getInputNode })
         : buildGltfPbrSurfaceAssignments(surfaceShader.node, { getInputNode });
 
-  if (surfaceShader.node.category === 'open_pbr_surface') {
+  if (surfaceShader.node.category === 'standard_surface') {
+    warnStandardSurfaceLimitations(surfaceShader.node, context);
+  } else if (surfaceShader.node.category === 'open_pbr_surface') {
     warnOpenPbrLimitations(surfaceShader.node, context);
-  }
-  if (surfaceShader.node.category === 'gltf_pbr') {
+  } else {
     warnGltfPbrLimitations(surfaceShader.node, context);
   }
 

@@ -9,6 +9,7 @@ import {
   Group,
   Mesh,
   MeshStandardMaterial,
+  PlaneGeometry,
   PerspectiveCamera,
   Scene,
   SphereGeometry,
@@ -20,7 +21,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 import { HDRLoader } from 'three/addons/loaders/HDRLoader.js'
 import type { MeshPhysicalNodeMaterial } from 'three/webgpu'
 
-export type PreviewGeometry = 'totem' | 'sphere' | 'cube'
+export type PreviewGeometry = 'totem' | 'sphere' | 'cube' | 'plane'
 
 export interface ViewerHandle {
   resetView: () => void
@@ -40,6 +41,20 @@ const ENV_MAP_URL = 'https://api.landofassets.com/media/BenHouston3D/Samples/Pau
 const DEFAULT_CAMERA_POSITION = { x: 0, y: 0, z: 3.2 }
 const TOTEM_MODEL_URL = '/models/ShaderBall.glb'
 const PREVIEW_TARGET_SIZE = 1.8
+
+const createUvPlaneGeometry = (size: number) => {
+  const geometry = new PlaneGeometry(size, size, 1, 1)
+  const half = size / 2
+  const position = geometry.getAttribute('position')
+  const uv = geometry.getAttribute('uv')
+
+  for (let index = 0; index < uv.count; index += 1) {
+    uv.setXY(index, position.getX(index) / half, position.getY(index) / half)
+  }
+  uv.needsUpdate = true
+
+  return geometry
+}
 
 const normalizePreviewModel = (root: Group, targetSize: number) => {
   root.updateWorldMatrix(true, true)
@@ -79,6 +94,7 @@ const Viewer = forwardRef<ViewerHandle, ViewerProps>(function Viewer(
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const materialSphereRef = useRef<Mesh | null>(null)
   const materialCubeRef = useRef<Mesh | null>(null)
+  const materialPlaneRef = useRef<Mesh | null>(null)
   const materialTotemRootRef = useRef<Group | null>(null)
   const materialTotemMeshesRef = useRef<Mesh[]>([])
   const backgroundSphereRef = useRef<Mesh | null>(null)
@@ -139,13 +155,17 @@ const Viewer = forwardRef<ViewerHandle, ViewerProps>(function Viewer(
       const defaultMaterial = new MeshStandardMaterial({ color: 0xc5d4db, metalness: 0, roughness: 0.5 })
       const sphere = new Mesh(new SphereGeometry(0.9, 96, 96), defaultMaterial)
       const cube = new Mesh(new BoxGeometry(1.45, 1.45, 1.45), defaultMaterial)
+      const plane = new Mesh(createUvPlaneGeometry(PREVIEW_TARGET_SIZE), defaultMaterial)
       defaultMaterialRef.current = defaultMaterial
       materialSphereRef.current = sphere
       materialCubeRef.current = cube
+      materialPlaneRef.current = plane
       sphere.visible = false
       cube.visible = false
+      plane.visible = false
       scene.add(sphere)
       scene.add(cube)
+      scene.add(plane)
 
       try {
         const gltf = await new GLTFLoader().loadAsync(TOTEM_MODEL_URL)
@@ -173,11 +193,15 @@ const Viewer = forwardRef<ViewerHandle, ViewerProps>(function Viewer(
       const applyPreviewMaterial = (material: unknown) => {
         const sphereMesh = materialSphereRef.current
         const cubeMesh = materialCubeRef.current
+        const planeMesh = materialPlaneRef.current
         if (sphereMesh) {
           ;(sphereMesh as unknown as { material: unknown }).material = material
         }
         if (cubeMesh) {
           ;(cubeMesh as unknown as { material: unknown }).material = material
+        }
+        if (planeMesh) {
+          ;(planeMesh as unknown as { material: unknown }).material = material
         }
         for (const mesh of materialTotemMeshesRef.current) {
           ;(mesh as unknown as { material: unknown }).material = material
@@ -187,12 +211,16 @@ const Viewer = forwardRef<ViewerHandle, ViewerProps>(function Viewer(
       const updatePreviewGeometryVisibility = (value: PreviewGeometry) => {
         const sphereMesh = materialSphereRef.current
         const cubeMesh = materialCubeRef.current
+        const planeMesh = materialPlaneRef.current
         const totemRoot = materialTotemRootRef.current
         if (sphereMesh) {
           sphereMesh.visible = value === 'sphere'
         }
         if (cubeMesh) {
           cubeMesh.visible = value === 'cube'
+        }
+        if (planeMesh) {
+          planeMesh.visible = value === 'plane'
         }
         if (totemRoot) {
           ;(totemRoot as unknown as { visible: boolean }).visible = value === 'totem'
@@ -300,11 +328,13 @@ const Viewer = forwardRef<ViewerHandle, ViewerProps>(function Viewer(
         environmentTexture?.dispose()
         sphere.geometry.dispose()
         cube.geometry.dispose()
+        plane.geometry.dispose()
         defaultMaterial.dispose()
         defaultBackgroundMaterial.dispose()
         backgroundSphere.geometry.dispose()
         materialSphereRef.current = null
         materialCubeRef.current = null
+        materialPlaneRef.current = null
         materialTotemRootRef.current?.traverse((entry) => {
           if ((entry as Mesh).isMesh) {
             ;(entry as Mesh).geometry.dispose()
@@ -331,13 +361,17 @@ const Viewer = forwardRef<ViewerHandle, ViewerProps>(function Viewer(
   useEffect(() => {
     const sphere = materialSphereRef.current
     const cube = materialCubeRef.current
+    const plane = materialPlaneRef.current
     const defaultMaterial = defaultMaterialRef.current
-    const resolvedMaterial = nodeMaterial ?? defaultMaterial ?? sphere?.material ?? cube?.material
+    const resolvedMaterial = nodeMaterial ?? defaultMaterial ?? sphere?.material ?? cube?.material ?? plane?.material
     if (sphere) {
       ;(sphere as unknown as { material: unknown }).material = resolvedMaterial
     }
     if (cube) {
       ;(cube as unknown as { material: unknown }).material = resolvedMaterial
+    }
+    if (plane) {
+      ;(plane as unknown as { material: unknown }).material = resolvedMaterial
     }
     for (const mesh of materialTotemMeshesRef.current) {
       ;(mesh as unknown as { material: unknown }).material = resolvedMaterial
@@ -347,12 +381,16 @@ const Viewer = forwardRef<ViewerHandle, ViewerProps>(function Viewer(
   useEffect(() => {
     const sphere = materialSphereRef.current
     const cube = materialCubeRef.current
+    const plane = materialPlaneRef.current
     const totemRoot = materialTotemRootRef.current
     if (sphere) {
       sphere.visible = previewGeometry === 'sphere'
     }
     if (cube) {
       cube.visible = previewGeometry === 'cube'
+    }
+    if (plane) {
+      plane.visible = previewGeometry === 'plane'
     }
     if (totemRoot) {
       ;(totemRoot as unknown as { visible: boolean }).visible = previewGeometry === 'totem'

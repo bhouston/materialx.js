@@ -66,6 +66,7 @@ export default function MaterialViewport({
               <option value="totem">Totem</option>
               <option value="sphere">Sphere</option>
               <option value="cube">Cube</option>
+              <option value="plane">Plane</option>
             </Select>
           </div>
           <div className="space-y-1.5">

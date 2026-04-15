@@ -1,10 +1,41 @@
 import type { MaterialXNode } from '@materialx-js/materialx';
-import { mul } from 'three/tsl';
+import { div, max, mul } from 'three/tsl';
 import type { MaterialSlotAssignments } from '../types.js';
 
 export interface OpenPbrSurfaceInputs {
   getInputNode(node: MaterialXNode, name: string, fallback: unknown): unknown;
 }
+
+const readNumberLiteral = (value: unknown): number | undefined => {
+  if (typeof value === 'number') {
+    return value;
+  }
+  if (!value || typeof value !== 'object') {
+    return undefined;
+  }
+  const nodeValue = (value as { value?: unknown }).value;
+  if (typeof nodeValue === 'number') {
+    return nodeValue;
+  }
+  const nestedNodeValue = (value as { node?: { value?: unknown } }).node?.value;
+  if (typeof nestedNodeValue === 'number') {
+    return nestedNodeValue;
+  }
+  return undefined;
+};
+
+const toGltfDispersion = (abbeNumber: unknown, dispersionScale: unknown): unknown => {
+  const abbeNumberLiteral = readNumberLiteral(abbeNumber);
+  const dispersionScaleLiteral = readNumberLiteral(dispersionScale);
+  if (abbeNumberLiteral !== undefined && dispersionScaleLiteral !== undefined) {
+    if (abbeNumberLiteral <= 0) {
+      return 0;
+    }
+    return (20 / abbeNumberLiteral) * dispersionScaleLiteral;
+  }
+  const safeAbbeNumber = max(abbeNumber as never, 1e-6 as never);
+  return mul(dispersionScale as never, div(20 as never, safeAbbeNumber as never));
+};
 
 export const buildOpenPbrSurfaceAssignments = (
   surfaceNode: MaterialXNode,
@@ -30,6 +61,14 @@ export const buildOpenPbrSurfaceAssignments = (
     : undefined;
   const transmissionDepth = hasInput('transmission_depth')
     ? helpers.getInputNode(surfaceNode, 'transmission_depth', undefined)
+    : undefined;
+  const hasTransmissionDispersionScale = hasInput('transmission_dispersion_scale');
+  const hasTransmissionDispersionAbbe = hasInput('transmission_dispersion_abbe_number');
+  const dispersion = hasTransmissionDispersionScale || hasTransmissionDispersionAbbe
+    ? toGltfDispersion(
+        helpers.getInputNode(surfaceNode, 'transmission_dispersion_abbe_number', 20),
+        helpers.getInputNode(surfaceNode, 'transmission_dispersion_scale', 0)
+      )
     : undefined;
   const ior = helpers.getInputNode(surfaceNode, 'specular_ior', 1.5);
   const normal = helpers.getInputNode(surfaceNode, 'geometry_normal', undefined);
@@ -62,6 +101,7 @@ export const buildOpenPbrSurfaceAssignments = (
     emissiveNode,
     opacityNode: opacity,
     transmissionNode: transmission,
+    dispersionNode: dispersion,
     attenuationColorNode: transmissionColor,
     attenuationDistanceNode: transmissionDepth,
     iorNode: ior,

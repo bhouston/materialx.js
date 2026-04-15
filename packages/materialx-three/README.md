@@ -12,7 +12,7 @@ This package is designed to sit on top of `@materialx-js/materialx` and produce 
 - Mapping coverage report generation (`SUPPORTED_NODES.md`)
 - Warning reporting for unsupported nodes and missing references
 
-OpenPBR support currently maps core inputs to MeshPhysical slots (`base_color`, `base_metalness`, `specular_roughness`, `transmission_weight`, `specular_ior`, `geometry_normal`, `emission_luminance` + `emission_color`). Advanced OpenPBR lobes (coat/fuzz/thin-film/subsurface anisotropy nuances) are reported as warnings when non-default and are not fully modeled yet.
+OpenPBR support currently maps core inputs to MeshPhysical slots (`base_color`, `base_metalness`, `specular_roughness`, `transmission_weight`, `specular_ior`, `transmission_dispersion_scale` + `transmission_dispersion_abbe_number` -> `dispersion`, `geometry_normal`, `emission_luminance` + `emission_color`). Any authored surface input that is not in the mapped lists is reported as a warning and ignored by the current translation.
 
 This is still an evolving implementation, not full MaterialX parity.
 
@@ -29,7 +29,7 @@ Currently mapped `standard_surface` inputs:
 - `emission`, `emission_color`
 - `opacity` (converted from `color3` to scalar luminance for `opacityNode`)
 - `transmission`, `transmission_color`, `transmission_depth`
-- `specular_IOR`
+- `specular_IOR` (with `ior` accepted as fallback alias)
 - `thin_film_thickness`, `thin_film_IOR` / `thin_film_ior`
 - `normal`
 

@@ -28,66 +28,120 @@ export const toScalar = (value: unknown): number | undefined => {
   return undefined;
 };
 
-const readInput = (node: MaterialXNode, name: string) => node.inputs.find((entry) => entry.name === name);
-
-const readScalarInput = (node: MaterialXNode, name: string): number | undefined => {
-  const input = readInput(node, name);
-  if (!input) {
-    return undefined;
+const warnIgnoredSurfaceInputs = (
+  surfaceNode: MaterialXNode,
+  mappedInputs: ReadonlySet<string>,
+  context: CompileContext
+): void => {
+  const authoredInputs = [...new Set(surfaceNode.inputs.map((input) => input.name))];
+  for (const inputName of authoredInputs) {
+    if (mappedInputs.has(inputName)) {
+      continue;
+    }
+    warn(context, {
+      code: 'unsupported-node',
+      category: surfaceNode.category,
+      nodeName: surfaceNode.name,
+      message: `${surfaceNode.category} input "${inputName}" is currently ignored in the MaterialX to Three.js TSL translation`,
+    });
   }
-  return toScalar(input.value ?? input.attributes.value);
 };
 
-export const warnOpenPbrLimitations = (surfaceNode: MaterialXNode, context: CompileContext): void => {
-  const unsupportedLobeInputs: Array<{ name: string; expected?: number }> = [
-    { name: 'subsurface_weight', expected: 0 },
-    { name: 'transmission_scatter_anisotropy', expected: 0 },
-    { name: 'transmission_dispersion_scale', expected: 0 },
-    { name: 'coat_darkening', expected: 1 },
-  ];
+const mappedStandardSurfaceInputs = new Set<string>([
+  'base',
+  'base_color',
+  'specular_roughness',
+  'metalness',
+  'specular',
+  'specular_color',
+  'specular_anisotropy',
+  'specular_rotation',
+  'coat',
+  'coat_color',
+  'coat_roughness',
+  'coat_normal',
+  'sheen',
+  'sheen_color',
+  'sheen_roughness',
+  'emission',
+  'emission_color',
+  'opacity',
+  'transmission',
+  'transmission_color',
+  'transmission_depth',
+  'specular_IOR',
+  'ior',
+  'thin_film_thickness',
+  'thin_film_IOR',
+  'thin_film_ior',
+  'normal',
+]);
 
-  const activeUnsupportedInputs = unsupportedLobeInputs.filter((entry) => {
-    const value = readScalarInput(surfaceNode, entry.name);
-    if (value === undefined) {
-      return false;
-    }
-    if (entry.expected === undefined) {
-      return true;
-    }
-    return Math.abs(value - entry.expected) > Number.EPSILON;
-  });
+const mappedOpenPbrInputs = new Set<string>([
+  'base_weight',
+  'base_color',
+  'specular_roughness',
+  'base_metalness',
+  'specular_weight',
+  'specular_color',
+  'specular_roughness_anisotropy',
+  'coat_weight',
+  'coat_roughness',
+  'geometry_coat_normal',
+  'fuzz_weight',
+  'fuzz_color',
+  'fuzz_roughness',
+  'transmission_weight',
+  'transmission_color',
+  'transmission_depth',
+  'transmission_dispersion_scale',
+  'transmission_dispersion_abbe_number',
+  'specular_ior',
+  'geometry_normal',
+  'geometry_opacity',
+  'thin_film_weight',
+  'thin_film_thickness',
+  'thin_film_ior',
+  'emission_color',
+  'emission_luminance',
+]);
 
-  if (activeUnsupportedInputs.length === 0) {
-    return;
-  }
+const mappedGltfPbrInputs = new Set<string>([
+  'base_color',
+  'occlusion',
+  'roughness',
+  'metallic',
+  'normal',
+  'transmission',
+  'specular',
+  'specular_color',
+  'ior',
+  'alpha',
+  'alpha_mode',
+  'alpha_cutoff',
+  'iridescence',
+  'iridescence_ior',
+  'iridescence_thickness',
+  'sheen_color',
+  'sheen_roughness',
+  'clearcoat',
+  'clearcoat_roughness',
+  'clearcoat_normal',
+  'emissive',
+  'emissive_strength',
+  'attenuation_distance',
+  'attenuation_color',
+  'thickness',
+  'dispersion',
+  'anisotropy_strength',
+  'anisotropy_rotation',
+]);
 
-  warn(context, {
-    code: 'unsupported-node',
-    category: surfaceNode.category,
-    nodeName: surfaceNode.name,
-    message: `OpenPBR inputs currently map to core MeshPhysical slots only; advanced lobes are ignored (${activeUnsupportedInputs
-      .map((entry) => entry.name)
-      .join(', ')})`,
-  });
-};
+export const warnStandardSurfaceLimitations = (surfaceNode: MaterialXNode, context: CompileContext): void =>
+  warnIgnoredSurfaceInputs(surfaceNode, mappedStandardSurfaceInputs, context);
 
-export const warnGltfPbrLimitations = (surfaceNode: MaterialXNode, context: CompileContext): void => {
-  const unsupportedInputs = ['tangent'];
-  const activeUnsupportedInputs = unsupportedInputs.filter((name) => {
-    const input = readInput(surfaceNode, name);
-    if (!input) {
-      return false;
-    }
-    return input.value !== undefined || input.attributes.value !== undefined || input.attributes.nodename || input.attributes.nodegraph;
-  });
+export const warnOpenPbrLimitations = (surfaceNode: MaterialXNode, context: CompileContext): void =>
+  warnIgnoredSurfaceInputs(surfaceNode, mappedOpenPbrInputs, context);
 
-  if (activeUnsupportedInputs.length === 0) {
-    return;
-  }
-
-  warn(context, {
-    code: 'unsupported-node',
-    nodeName: surfaceNode.name,
-    message: `glTF PBR extension inputs are not yet mapped and are ignored (${activeUnsupportedInputs.join(', ')})`,
-  });
-};
+export const warnGltfPbrLimitations = (surfaceNode: MaterialXNode, context: CompileContext): void =>
+  warnIgnoredSurfaceInputs(surfaceNode, mappedGltfPbrInputs, context);

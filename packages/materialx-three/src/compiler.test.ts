@@ -57,6 +57,24 @@ const compileFixture = (fixturePath: string) => {
   return compileMaterialXToTSL(document);
 };
 
+const readNumberLiteral = (value: unknown): number | undefined => {
+  if (typeof value === 'number') {
+    return value;
+  }
+  if (!value || typeof value !== 'object') {
+    return undefined;
+  }
+  const nodeValue = (value as { value?: unknown }).value;
+  if (typeof nodeValue === 'number') {
+    return nodeValue;
+  }
+  const nestedNodeValue = (value as { node?: { value?: unknown } }).node?.value;
+  if (typeof nestedNodeValue === 'number') {
+    return nestedNodeValue;
+  }
+  return undefined;
+};
+
 const expectCategoriesSupported = (
   result: ReturnType<typeof compileMaterialXToTSL>,
   categories: string[]
@@ -114,6 +132,41 @@ describe('materialx-three compiler', () => {
     expect(compiled.material.iridescenceNode).toBeDefined();
     expect(compiled.material.iridescenceIORNode).toBeDefined();
     expect(compiled.material.iridescenceThicknessNode).toBeDefined();
+  });
+
+  it('maps standard_surface ior as a fallback when specular_IOR is absent', () => {
+    const xml = `<?xml version="1.0"?>
+<materialx version="1.39" colorspace="lin_rec709">
+  <standard_surface name="SR_IorFallback" type="surfaceshader">
+    <input name="base_color" type="color3" value="1.0, 1.0, 1.0" />
+    <input name="ior" type="float" value="1.7" />
+  </standard_surface>
+  <surfacematerial name="M_IorFallback" type="material">
+    <input name="surfaceshader" type="surfaceshader" nodename="SR_IorFallback" />
+  </surfacematerial>
+</materialx>`;
+
+    const result = compileMaterialXToTSL(parseMaterialX(xml));
+    expect(readNumberLiteral(result.assignments.iorNode)).toBe(1.7);
+    expect(result.warnings.some((entry) => entry.message.includes('input "ior"'))).toBe(false);
+  });
+
+  it('prefers standard_surface specular_IOR over ior fallback', () => {
+    const xml = `<?xml version="1.0"?>
+<materialx version="1.39" colorspace="lin_rec709">
+  <standard_surface name="SR_IorPreferred" type="surfaceshader">
+    <input name="base_color" type="color3" value="1.0, 1.0, 1.0" />
+    <input name="ior" type="float" value="1.1" />
+    <input name="specular_IOR" type="float" value="1.9" />
+  </standard_surface>
+  <surfacematerial name="M_IorPreferred" type="material">
+    <input name="surfaceshader" type="surfaceshader" nodename="SR_IorPreferred" />
+  </surfacematerial>
+</materialx>`;
+
+    const result = compileMaterialXToTSL(parseMaterialX(xml));
+    expect(readNumberLiteral(result.assignments.iorNode)).toBe(1.9);
+    expect(result.warnings.some((entry) => entry.message.includes('input "ior"'))).toBe(false);
   });
 
   it('maps low-hanging standard_surface physical controls to material slots', () => {
@@ -195,12 +248,9 @@ describe('materialx-three compiler', () => {
     expect(result.assignments.metalnessNode).toBeDefined();
     expect(result.assignments.transmissionNode).toBeDefined();
     expect(result.unsupportedCategories).not.toContain('open_pbr_surface');
-    expect(
-      result.warnings.some((entry) => entry.code === 'unsupported-node' && entry.category === 'open_pbr_surface')
-    ).toBe(false);
   });
 
-  it('warns when open_pbr advanced lobes are non-default', () => {
+  it('warns for each ignored open_pbr_surface input', () => {
     const result = compileFixture(openPbrKetchupFixture);
 
     expect(
@@ -208,7 +258,40 @@ describe('materialx-three compiler', () => {
         (entry) =>
           entry.code === 'unsupported-node' &&
           entry.category === 'open_pbr_surface' &&
-          entry.message.includes('subsurface_weight')
+          entry.message.includes('input "subsurface_weight"')
+      )
+    ).toBe(true);
+  });
+
+  it('warns for ignored standard_surface inputs', () => {
+    const xml = `<?xml version="1.0"?>
+<materialx version="1.39">
+  <standard_surface name="SR_UnsupportedStandardInput" type="surfaceshader">
+    <input name="base_color" type="color3" value="1.0, 0.2, 0.2" />
+    <input name="diffuse_roughness" type="float" value="0.25" />
+    <input name="subsurface" type="float" value="0.5" />
+  </standard_surface>
+  <surfacematerial name="M_UnsupportedStandardInput" type="material">
+    <input name="surfaceshader" type="surfaceshader" nodename="SR_UnsupportedStandardInput" />
+  </surfacematerial>
+</materialx>`;
+
+    const result = compileMaterialXToTSL(parseMaterialX(xml));
+
+    expect(
+      result.warnings.some(
+        (entry) =>
+          entry.code === 'unsupported-node' &&
+          entry.category === 'standard_surface' &&
+          entry.message.includes('input "diffuse_roughness"')
+      )
+    ).toBe(true);
+    expect(
+      result.warnings.some(
+        (entry) =>
+          entry.code === 'unsupported-node' &&
+          entry.category === 'standard_surface' &&
+          entry.message.includes('input "subsurface"')
       )
     ).toBe(true);
   });
@@ -218,6 +301,32 @@ describe('materialx-three compiler', () => {
     expect(result.assignments.transmissionNode).toBeDefined();
     expect(result.assignments.iorNode).toBeDefined();
     expect(result.assignments.colorNode).toBeDefined();
+  });
+
+  it('maps open_pbr dispersion controls to glTF/Three dispersion value', () => {
+    const xml = `<?xml version="1.0"?>
+<materialx version="1.39" colorspace="lin_rec709">
+  <open_pbr_surface name="SR_OpenPbrDispersion" type="surfaceshader">
+    <input name="base_color" type="color3" value="1.0, 1.0, 1.0" />
+    <input name="specular_roughness" type="float" value="0.05" />
+    <input name="specular_ior" type="float" value="1.5" />
+    <input name="transmission_weight" type="float" value="1.0" />
+    <input name="transmission_dispersion_scale" type="float" value="0.4" />
+    <input name="transmission_dispersion_abbe_number" type="float" value="40.0" />
+  </open_pbr_surface>
+  <surfacematerial name="M_OpenPbrDispersion" type="material">
+    <input name="surfaceshader" type="surfaceshader" nodename="SR_OpenPbrDispersion" />
+  </surfacematerial>
+</materialx>`;
+
+    const document = parseMaterialX(xml);
+    const result = compileMaterialXToTSL(document);
+    expect(readNumberLiteral(result.assignments.dispersionNode)).toBeCloseTo(0.2, 6);
+    expect(result.warnings.some((entry) => entry.message.includes('input "transmission_dispersion_scale"'))).toBe(false);
+    expect(result.warnings.some((entry) => entry.message.includes('input "transmission_dispersion_abbe_number"'))).toBe(false);
+
+    const compiled = createThreeMaterialFromDocument(document);
+    expect(readNumberLiteral(compiled.material.dispersionNode)).toBeCloseTo(0.2, 6);
   });
 
   it('maps open_pbr thin film inputs to physical iridescence slots', () => {

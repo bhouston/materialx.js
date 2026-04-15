@@ -7,19 +7,28 @@ import MaterialViewport from '../components/MaterialViewport'
 import { loadMaterialXBackgroundPack, materialXBackgroundPacks } from '../lib/backgrounds'
 import { createBrowserTextureResolver } from '../lib/browser-texture-resolver'
 import { importMaterialXBundle } from '../lib/materialx-import'
-import { loadMaterialXSamplePack, materialXSamplePacks } from '../lib/samples'
+import { getMaterialXSamplePacks, loadMaterialXSampleById } from '../lib/materialx-samples.functions'
 
-export const Route = createFileRoute('/')({ component: App })
+export const Route = createFileRoute('/')({
+  loader: async () => {
+    const samplePacks = await getMaterialXSamplePacks()
+    const firstSampleId = samplePacks[0]?.id
+    const initialSample = firstSampleId ? await loadMaterialXSampleById({ data: { id: firstSampleId } }) : undefined
+    return { samplePacks, initialSample }
+  },
+  component: App,
+})
 
 function App() {
-  const [selectedSample, setSelectedSample] = useState(materialXSamplePacks[0]?.id ?? '')
-  const [xml, setXml] = useState('')
-  const [sampleLabel, setSampleLabel] = useState(materialXSamplePacks[0]?.label ?? 'Custom')
+  const { samplePacks, initialSample } = Route.useLoaderData()
+  const [selectedSample, setSelectedSample] = useState(samplePacks[0]?.id ?? '')
+  const [xml, setXml] = useState(initialSample?.xml ?? '')
+  const [sampleLabel, setSampleLabel] = useState(samplePacks[0]?.label ?? 'Custom')
   const [selectedBackground, setSelectedBackground] = useState(materialXBackgroundPacks[0]?.id ?? '')
   const [backgroundXml, setBackgroundXml] = useState('')
   const [backgroundError, setBackgroundError] = useState<string>()
-  const [assetUrls, setAssetUrls] = useState<Record<string, string>>({})
-  const [loadedAssets, setLoadedAssets] = useState<string[]>([])
+  const [assetUrls, setAssetUrls] = useState<Record<string, string>>(initialSample?.assets ?? {})
+  const [loadedAssets, setLoadedAssets] = useState<string[]>(Object.keys(initialSample?.assets ?? {}))
   const [isDragging, setIsDragging] = useState(false)
   const [dropMessage, setDropMessage] = useState('Drop a .mtlx and related textures, or click to select files')
   const fileInputRef = useRef<HTMLInputElement | null>(null)
@@ -85,7 +94,7 @@ function App() {
 
   const handleSampleChange = useCallback(async (sampleId: string) => {
     setSelectedSample(sampleId)
-    const sample = materialXSamplePacks.find((entry) => entry.id === sampleId)
+    const sample = samplePacks.find((entry) => entry.id === sampleId)
     if (!sample) {
       return
     }
@@ -94,8 +103,8 @@ function App() {
     }
     uploadedObjectUrlsRef.current = []
     try {
-      const loaded = await loadMaterialXSamplePack(sample)
-      setSampleLabel(loaded.info || sample.label)
+      const loaded = await loadMaterialXSampleById({ data: { id: sample.id } })
+      setSampleLabel(sample.label)
       setXml(loaded.xml)
       setAssetUrls(loaded.assets)
       setLoadedAssets(Object.keys(loaded.assets))
@@ -107,15 +116,7 @@ function App() {
       setLoadedAssets([])
       setDropMessage(error instanceof Error ? error.message : 'Could not load built-in sample')
     }
-  }, [])
-
-  useEffect(() => {
-    const initial = materialXSamplePacks[0]
-    if (!initial) {
-      return
-    }
-    void handleSampleChange(initial.id)
-  }, [handleSampleChange])
+  }, [samplePacks])
 
   const handleBackgroundChange = useCallback(async (backgroundId: string) => {
     setSelectedBackground(backgroundId)
@@ -212,9 +213,9 @@ function App() {
               }}
               value={selectedSample}
             >
-              {materialXSamplePacks.map((sample) => (
+              {samplePacks.map((sample) => (
                 <option key={sample.id} value={sample.id}>
-                  {sample.label} - {sample.description}
+                  {sample.label}
                 </option>
               ))}
             </select>

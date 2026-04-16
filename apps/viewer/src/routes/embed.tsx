@@ -113,15 +113,19 @@ function EmbedRouteComponent() {
           <a
             className="pointer-events-auto text-2xl font-bold text-foreground drop-shadow-sm transition-opacity hover:opacity-85"
             href={homeHref}
+            rel="noopener noreferrer"
+            target="_blank"
           >
             MaterialX Viewer
           </a>
         </div>
         {url ? (
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 px-4">
+          <div className="absolute bottom-4 left-1/2 w-[80%] -translate-x-1/2 px-2">
             <a
-              className="pointer-events-auto block text-center text-base text-foreground/90 drop-shadow-sm transition-opacity hover:opacity-85"
+              className="pointer-events-auto block w-full overflow-x-auto whitespace-nowrap text-center text-base text-foreground/90 drop-shadow-sm transition-opacity hover:opacity-85"
               href={homeHref}
+              rel="noopener noreferrer"
+              target="_blank"
             >
               {url}
             </a>

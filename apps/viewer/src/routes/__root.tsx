@@ -1,4 +1,5 @@
 import { HeadContent, Link, Scripts, createRootRoute, useRouterState } from '@tanstack/react-router';
+import { GoogleAnalytics } from 'tanstack-router-ga4';
 import Footer from '../components/Footer';
 import Header from '../components/Header';
 
@@ -46,6 +47,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
             : 'flex min-h-screen flex-col [overflow-wrap:anywhere]'
         }
       >
+        <GoogleAnalytics measurementId="G-2HVC3XM9XH" />
         {isEmbedRoute ? null : <Header />}
         <main className={isEmbedRoute ? 'h-full w-full' : 'flex-1 page-main'}>{children}</main>
         {isEmbedRoute ? null : <Footer />}

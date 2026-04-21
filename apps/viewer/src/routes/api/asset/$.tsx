@@ -2,6 +2,11 @@ import { createFileRoute } from '@tanstack/react-router';
 import { createMaterialXZipPayloadByMaterialName } from '../../../lib/materialx-zip.server';
 
 const ZIP_SUFFIX = '.mtlx.zip';
+const CORS_HEADERS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, OPTIONS',
+  'Access-Control-Expose-Headers': 'Content-Disposition, Content-Type, Content-Length, Cache-Control',
+};
 
 const parseMaterialName = (splat: string | undefined): string | undefined => {
   const raw = splat?.trim();
@@ -24,20 +29,37 @@ const parseMaterialName = (splat: string | undefined): string | undefined => {
 export const Route = createFileRoute('/api/asset/$')({
   server: {
     handlers: {
+      OPTIONS: async ({ request }) => {
+        const requestedHeaders = request.headers.get('Access-Control-Request-Headers');
+        return new Response(null, {
+          status: 204,
+          headers: {
+            ...CORS_HEADERS,
+            'Access-Control-Allow-Headers': requestedHeaders ?? 'Content-Type, Range',
+          },
+        });
+      },
       GET: async ({ params }) => {
         const materialName = parseMaterialName(params._splat);
         if (!materialName) {
-          return new Response('Invalid asset path, expected <materialName>.mtlx.zip', { status: 400 });
+          return new Response('Invalid asset path, expected <materialName>.mtlx.zip', {
+            status: 400,
+            headers: CORS_HEADERS,
+          });
         }
 
         const payload = await createMaterialXZipPayloadByMaterialName(materialName);
         if (!payload) {
-          return new Response(`Unknown material sample: ${materialName}`, { status: 404 });
+          return new Response(`Unknown material sample: ${materialName}`, {
+            status: 404,
+            headers: CORS_HEADERS,
+          });
         }
 
         return new Response(payload.zip, {
           status: 200,
           headers: {
+            ...CORS_HEADERS,
             'Content-Type': 'application/zip',
             'Content-Disposition': `inline; filename="${payload.sampleDirectory}.mtlx.zip"`,
             'Cache-Control': 'public, max-age=300',

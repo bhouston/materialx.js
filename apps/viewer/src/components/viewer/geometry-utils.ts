@@ -4,7 +4,7 @@ import * as MikkTSpace from 'three/addons/libs/mikktspace.module.js';
 import { computeMikkTSpaceTangents } from 'three/addons/utils/BufferGeometryUtils.js';
 
 export const PREVIEW_TARGET_SIZE = 1.8;
-export const TOTEM_MODEL_URL = '/models/totem.glb';
+export const TOTEM_MODEL_URL = '/models/ShaderBall.glb';
 export const ENV_MAP_URL = 'https://api.landofassets.com/media/BenHouston3D/Samples/PaulLobeHaus/image/hdr';
 
 export const DEFAULT_CAMERA_POSITION = { x: 0, y: 0, z: 3.2 } as const;

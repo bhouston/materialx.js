@@ -132,7 +132,7 @@ export const openViewerBrowserPage = async (baseUrl: string): Promise<{ browser:
     },
   });
   const start = Date.now();
-  const embedUrl = `${baseUrl}/embed?url=${encodeURIComponent('/api/asset/open-pbr-soapbubble.mtlx.zip')}&model=sphere&background=checkerboard&static=true`;
+  const embedUrl = `${baseUrl}/embed?sourceUrl=${encodeURIComponent('/api/asset/open-pbr-soapbubble.mtlx.zip')}&model=sphere&background=checkerboard&static=true`;
   for (;;) {
     try {
       await page.goto(embedUrl, { waitUntil: 'domcontentloaded', timeout: 120_000 });
@@ -212,7 +212,7 @@ const waitForViewerSettled = async (page: Page): Promise<void> => {
 };
 
 export const loadSampleInViewer = async (page: Page, sample: ViewerSampleEntry): Promise<void> => {
-  const embedUrl = `/embed?url=${encodeURIComponent(`/api/asset/${sample.id}.mtlx.zip`)}&model=sphere&background=checkerboard&static=true`;
+  const embedUrl = `/embed?sourceUrl=${encodeURIComponent(`/api/asset/${sample.id}.mtlx.zip`)}&model=sphere&background=checkerboard&static=true`;
   await page.goto(new URL(embedUrl, page.url()).toString(), { waitUntil: 'domcontentloaded' });
   await waitForDiagnosticsUpdate(page);
   await waitForCanvasReady(page);

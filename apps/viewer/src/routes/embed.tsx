@@ -7,14 +7,21 @@ import { useMaterialXBundleState } from '../hooks/useMaterialXBundleState';
 import { useMaterialXCompile } from '../hooks/useMaterialXCompile';
 import { useViewerTestInstrumentation } from '../hooks/useViewerTestInstrumentation';
 import { materialXBackgroundPacks } from '../lib/backgrounds';
+import { getMaterialXSamplePacks } from '../lib/materialx-samples.functions';
+import { resolveSourceToUrl } from '../lib/materialx-source';
 import type { PreviewGeometry } from '../components/Viewer';
+
+const getErrorMessage = (error: unknown): string =>
+  error instanceof Error ? error.message : `Unknown error: ${String(error)}`;
 
 const allowedModels = new Set<PreviewGeometry>(['totem', 'sphere', 'plane', 'cube']);
 const allowedBackgrounds = new Set(materialXBackgroundPacks.map((entry) => entry.id));
 const defaultBackground = materialXBackgroundPacks[0]?.id ?? 'checkerboard';
 
 const embedSearchSchema = z.object({
+  sourceUrl: z.preprocess((value) => (typeof value === 'string' ? value : undefined), z.string().optional()),
   url: z.preprocess((value) => (typeof value === 'string' ? value : undefined), z.string().optional()),
+  material: z.preprocess((value) => (typeof value === 'string' ? value : undefined), z.string().optional()),
   model: z.preprocess(
     (value) => (typeof value === 'string' && allowedModels.has(value as PreviewGeometry) ? value : undefined),
     z.enum(['totem', 'sphere', 'plane', 'cube']).default('totem'),
@@ -32,36 +39,49 @@ const embedSearchSchema = z.object({
 
 export const Route = createFileRoute('/embed')({
   validateSearch: embedSearchSchema,
+  loader: async () => {
+    const samplePacks = await getMaterialXSamplePacks();
+    return { samplePacks };
+  },
   component: EmbedRouteComponent,
 });
 
 function EmbedRouteComponent() {
   const hydrated = useHydrated();
-  const { url, model, background, static: staticPreview } = Route.useSearch();
-  const { xml, assetUrls, loadFromUrl, clearBundle } = useMaterialXBundleState();
+  const { samplePacks } = Route.useLoaderData();
+  const { sourceUrl, url, material, model, background, static: staticPreview } = Route.useSearch();
+  const { xml, assetUrls, loadError, setLoadError, loadFromUrl, clearBundle } = useMaterialXBundleState();
   const compileState = useMaterialXCompile({ xml, assetUrls, hydrated });
   const { selectedBackground, backgroundError, backgroundCompileState, onBackgroundChange } = useMaterialXBackground(
     hydrated,
     background,
   );
   useViewerTestInstrumentation(true, hydrated);
+  const resolvedSource = useMemo(() => {
+    const candidate = sourceUrl ?? url ?? material ?? '';
+    return resolveSourceToUrl(candidate, samplePacks);
+  }, [material, samplePacks, sourceUrl, url]);
+  const resolvedSourceUrl = resolvedSource?.url;
+  const resolvedSourceLabel = resolvedSource?.label;
 
   useEffect(() => {
     const load = async () => {
-      if (!url) {
+      if (!resolvedSourceUrl) {
         clearBundle();
         return;
       }
       try {
-        await loadFromUrl(url);
+        await loadFromUrl(resolvedSourceUrl, resolvedSourceLabel || undefined);
       } catch (error) {
+        const errorMessage = getErrorMessage(error);
         clearBundle();
+        setLoadError(errorMessage);
         console.error('Failed to load embed material:', error);
       }
     };
 
     void load();
-  }, [clearBundle, loadFromUrl, url]);
+  }, [clearBundle, loadFromUrl, resolvedSourceLabel, resolvedSourceUrl, setLoadError]);
 
   useEffect(() => {
     void onBackgroundChange(background);
@@ -73,20 +93,23 @@ function EmbedRouteComponent() {
     (warning) => warning.code === 'unsupported-node',
   ).length;
   const statusMessage = useMemo(() => {
-    if (!url) {
-      return 'Missing "url" query parameter';
+    if (!resolvedSourceUrl) {
+      return 'Missing "sourceUrl" query parameter';
+    }
+    if (loadError) {
+      return `Failed to load sourceUrl: ${loadError}`;
     }
     if (!xml.trim()) {
       return 'Loading material...';
     }
     return 'Embed route active';
-  }, [url, xml]);
+  }, [loadError, resolvedSourceUrl, xml]);
   const homeHref = useMemo(() => {
-    if (!url) {
+    if (!resolvedSourceUrl) {
       return '/';
     }
-    return `/?material=${encodeURIComponent(url)}`;
-  }, [url]);
+    return `/?sourceUrl=${encodeURIComponent(resolvedSourceUrl)}`;
+  }, [resolvedSourceUrl]);
 
   return (
     <div className="relative h-full w-full">
@@ -119,7 +142,7 @@ function EmbedRouteComponent() {
             MaterialX Viewer
           </a>
         </div>
-        {url ? (
+        {resolvedSourceUrl ? (
           <div className="absolute bottom-4 left-1/2 w-[80%] -translate-x-1/2 px-2">
             <a
               className="pointer-events-auto block w-full overflow-x-auto whitespace-nowrap text-center text-base text-foreground/90 drop-shadow-sm transition-opacity hover:opacity-85"
@@ -127,8 +150,16 @@ function EmbedRouteComponent() {
               rel="noopener noreferrer"
               target="_blank"
             >
-              {url}
+              {resolvedSourceUrl}
             </a>
+          </div>
+        ) : null}
+        {loadError ? (
+          <div className="absolute right-4 top-4 max-w-[min(80vw,36rem)] rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive shadow-sm">
+            <p className="m-0 font-semibold" data-testid="load-error-message">
+              Failed to load embed material
+            </p>
+            <p className="m-0 mt-1 break-all">{loadError}</p>
           </div>
         ) : null}
       </div>
@@ -141,7 +172,7 @@ function EmbedRouteComponent() {
         data-warning-count={warningCount}
       >
         {compileState.error ? <p data-testid="compile-error-message">{compileState.error}</p> : <p>{statusMessage}</p>}
-        <p data-testid="active-source-label">{url ?? 'n/a'}</p>
+        <p data-testid="active-source-label">{resolvedSourceUrl ?? 'n/a'}</p>
       </div>
     </div>
   );

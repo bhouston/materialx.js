@@ -23,10 +23,22 @@ import { useViewerTestInstrumentation } from '../hooks/useViewerTestInstrumentat
 import { downloadMaterialXZip } from '../lib/materialx-download';
 import { materialXBackgroundPacks } from '../lib/backgrounds';
 import { getMaterialXSamplePacks } from '../lib/materialx-samples.functions';
+import { buildSampleAssetUrl, findSampleBySourceUrl, resolveSourceToUrl } from '../lib/materialx-source';
 import type { PreviewGeometry } from '../components/Viewer';
 import { cn } from '../lib/utils';
 
+const getErrorMessage = (error: unknown): string =>
+  error instanceof Error ? error.message : `Unknown error: ${String(error)}`;
+
 const indexSearchSchema = z.object({
+  sourceUrl: z.preprocess(
+    (value) => (typeof value === 'string' && value.length > 0 ? value : undefined),
+    z.string().optional(),
+  ),
+  url: z.preprocess(
+    (value) => (typeof value === 'string' && value.length > 0 ? value : undefined),
+    z.string().optional(),
+  ),
   material: z.preprocess(
     (value) => (typeof value === 'string' && value.length > 0 ? value : undefined),
     z.string().optional(),
@@ -44,38 +56,9 @@ export const Route = createFileRoute('/')({
 
 const DEFAULT_MATERIAL = 'open-pbr-soapbubble';
 
-/**
- * Resolves a `material` search param value to a canonical fetch URL and label.
- * Returns null when the material is "none" / empty (meaning clear the bundle).
- */
-function resolveMaterialToUrl(
-  material: string,
-  samplePacks: Array<{ id: string; directory: string }>,
-): { url: string; label: string } | null {
-  const resolved = material.trim();
-  if (!resolved || resolved === 'none') return null;
-
-  // Already a URL
-  if (resolved.startsWith('http://') || resolved.startsWith('https://') || resolved.startsWith('/')) {
-    return { url: resolved, label: '' };
-  }
-
-  // Sample id
-  const sample = samplePacks.find((entry) => entry.id === resolved);
-  if (sample) {
-    return {
-      url: `/api/asset/${encodeURIComponent(sample.id)}.mtlx.zip`,
-      label: sample.directory,
-    };
-  }
-
-  // Unknown value – treat as-is (URL-like or fallthrough)
-  return { url: resolved, label: '' };
-}
-
 function App() {
   const { samplePacks } = Route.useLoaderData();
-  const { material: materialParam } = Route.useSearch();
+  const { sourceUrl: sourceUrlParam, url: urlParam, material: materialParam } = Route.useSearch();
   const navigate = useNavigate();
   const hydrated = useHydrated();
 
@@ -88,6 +71,8 @@ function App() {
     sampleLabel,
     assetUrls,
     loadedAssets,
+    loadError,
+    setLoadError,
     clearBundle,
     loadFromUrl,
     importFiles: importBundleFiles,
@@ -112,8 +97,8 @@ function App() {
 
   // Unified material loading: resolve param -> canonical URL -> loadFromUrl
   useEffect(() => {
-    const paramValue = materialParam ?? DEFAULT_MATERIAL;
-    const resolved = resolveMaterialToUrl(paramValue, samplePacks);
+    const paramValue = sourceUrlParam ?? urlParam ?? materialParam ?? DEFAULT_MATERIAL;
+    const resolved = resolveSourceToUrl(paramValue, samplePacks);
 
     if (!resolved) {
       clearBundle();
@@ -128,29 +113,29 @@ function App() {
       try {
         await loadFromUrl(url, label || undefined);
         // Track which sample is selected in the dropdown (if any)
-        const matchingSample = samplePacks.find(
-          (entry) => `/api/asset/${encodeURIComponent(entry.id)}.mtlx.zip` === url,
-        );
+        const matchingSample = findSampleBySourceUrl(url, samplePacks);
         setSelectedSample(matchingSample?.id ?? '');
         setMaterialSourceUrl(url);
       } catch (error) {
+        const errorMessage = getErrorMessage(error);
         clearBundle();
+        setLoadError(errorMessage);
         setMaterialSourceUrl(null);
         console.error('Failed to load material:', error);
       }
     };
 
     void syncFromSearch();
-  }, [clearBundle, loadFromUrl, materialParam, samplePacks]);
+  }, [clearBundle, loadFromUrl, materialParam, samplePacks, setLoadError, sourceUrlParam, urlParam]);
 
   const handleDropdownChange = useCallback(
     (sampleId: string) => {
       if (sampleId) {
-        void navigate({ to: '/', search: { material: sampleId } });
+        void navigate({ to: '/', search: { sourceUrl: buildSampleAssetUrl(sampleId) } });
       } else {
         setSelectedSample('');
         clearBundle();
-        void navigate({ to: '/', search: { material: 'none' } });
+        void navigate({ to: '/', search: { sourceUrl: 'none' } });
       }
     },
     [clearBundle, navigate],
@@ -162,12 +147,14 @@ function App() {
         await importBundleFiles(files);
         setSelectedSample('');
         setMaterialSourceUrl(null);
-        void navigate({ to: '/', search: { material: undefined } });
+        void navigate({ to: '/', search: { sourceUrl: undefined } });
       } catch (error) {
+        const errorMessage = getErrorMessage(error);
+        setLoadError(errorMessage);
         console.error('Import failed:', error);
       }
     },
-    [importBundleFiles, navigate],
+    [importBundleFiles, navigate, setLoadError],
   );
 
   const handleDrop = useCallback(
@@ -218,7 +205,7 @@ function App() {
     const absUrl = materialSourceUrl.startsWith('/')
       ? `${typeof window !== 'undefined' ? window.location.origin : ''}${materialSourceUrl}`
       : materialSourceUrl;
-    params.set('url', absUrl);
+    params.set('sourceUrl', absUrl);
     if (currentPreviewGeometry !== 'totem') params.set('model', currentPreviewGeometry);
     const defaultBg = materialXBackgroundPacks[0]?.id ?? '';
     if (selectedBackground && selectedBackground !== defaultBg) params.set('background', selectedBackground);
@@ -330,6 +317,14 @@ function App() {
         onDragOver={handleDragOver}
         onDrop={handleDrop}
       >
+        {loadError ? (
+          <div className="mx-3 mt-3 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            <p className="m-0 font-medium" data-testid="load-error-message">
+              Failed to load material.
+            </p>
+            <p className="m-0 mt-1 break-all text-xs">{loadError}</p>
+          </div>
+        ) : null}
         <input
           accept=".mtlx,.zip,.png,.jpg,.jpeg,.webp,.gif,.exr,.hdr"
           className="sr-only"

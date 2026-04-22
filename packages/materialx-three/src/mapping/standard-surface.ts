@@ -9,6 +9,13 @@ export interface StandardSurfaceInputs {
 const multiplyNodeValues = (left: unknown, right: unknown): unknown =>
   (left as { mul?: (other: unknown) => unknown }).mul?.(right) ?? mul(left as never, right as never);
 
+const mixUnsafe = mix as unknown as (left: unknown, right: unknown, alpha: unknown) => unknown;
+const dotUnsafe = dot as unknown as (left: unknown, right: unknown) => unknown;
+
+const mixNodeValues = (left: unknown, right: unknown, alpha: unknown): unknown =>
+  (left as { mix?: (other: unknown, factor: unknown) => unknown }).mix?.(right, alpha) ??
+  mixUnsafe(left, right, alpha);
+
 const toOpacityScalar = (opacity: unknown): unknown => {
   if (typeof opacity === 'number') {
     return opacity;
@@ -19,7 +26,7 @@ const toOpacityScalar = (opacity: unknown): unknown => {
       return r * 0.2126 + g * 0.7152 + b * 0.0722;
     }
   }
-  return dot(opacity as never, vec3(0.2126, 0.7152, 0.0722));
+  return dotUnsafe(opacity, vec3(0.2126, 0.7152, 0.0722));
 };
 
 const toAttenuationDistance = (depth: unknown, hasTransmissionColorInput: boolean): unknown => {
@@ -77,15 +84,15 @@ export const buildStandardSurfaceAssignments = (
   );
   const normal = helpers.getInputNode(surfaceNode, 'normal', undefined);
 
-  const baseLayerColor = mul(baseColor as never, base as never);
+  const baseLayerColor = multiplyNodeValues(baseColor, base);
   // Standard Surface "base" controls diffuse only; with transmission-heavy
   // materials (e.g. glass) base is commonly zero and should not black out the
   // transmitted result in Three's physical model.
   const transmissionSafeBaseColor = hasTransmission
-    ? mix(baseLayerColor as never, vec3(1, 1, 1) as never, transmission as never)
+    ? mixNodeValues(baseLayerColor, vec3(1, 1, 1), transmission)
     : baseLayerColor;
   // StandardSurface copper/brass examples tint via coat_color even when base_color is white.
-  const coatTint = mix(vec3(1, 1, 1), coatColor as never, coat as never);
+  const coatTint = mixNodeValues(vec3(1, 1, 1), coatColor, coat);
   const colorNode = mul(transmissionSafeBaseColor as never, coatTint as never);
   const emissiveNode = multiplyNodeValues(emissionColor, emissionAmount);
   const sheenNode = multiplyNodeValues(sheenColor, sheen);

@@ -158,10 +158,12 @@ const transformPointBetweenSpaces = (
     return inNode;
   }
   const inPoint = vec3(inNode as never);
+  const makeVec4 = vec4 as unknown as (x: unknown, y: unknown) => unknown;
+  const point4 = makeVec4(inPoint, float(1));
   if (fromSpace === 'object' && toSpace === 'world') {
-    return modelWorldMatrix.mul(vec4(inPoint as never, float(1))).xyz;
+    return (modelWorldMatrix as { mul: (rhs: unknown) => { xyz?: unknown } }).mul(point4 as never).xyz;
   }
-  return modelWorldMatrixInverse.mul(vec4(inPoint as never, float(1))).xyz;
+  return (modelWorldMatrixInverse as { mul: (rhs: unknown) => { xyz?: unknown } }).mul(point4 as never).xyz;
 };
 
 const transformVectorBetweenSpaces = (
@@ -173,10 +175,12 @@ const transformVectorBetweenSpaces = (
     return inNode;
   }
   const inVector = vec3(inNode as never);
+  const makeVec4 = vec4 as unknown as (x: unknown, y: unknown) => unknown;
+  const vector4 = makeVec4(inVector, float(0));
   if (fromSpace === 'object' && toSpace === 'world') {
-    return modelWorldMatrix.mul(vec4(inVector as never, float(0))).xyz;
+    return (modelWorldMatrix as { mul: (rhs: unknown) => { xyz?: unknown } }).mul(vector4 as never).xyz;
   }
-  return modelWorldMatrixInverse.mul(vec4(inVector as never, float(0))).xyz;
+  return (modelWorldMatrixInverse as { mul: (rhs: unknown) => { xyz?: unknown } }).mul(vector4 as never).xyz;
 };
 
 const transformNormalBetweenSpaces = (
@@ -184,14 +188,16 @@ const transformNormalBetweenSpaces = (
   fromSpace: 'object' | 'world',
   toSpace: 'object' | 'world',
 ): unknown => {
+  const makeVec3 = vec3 as unknown as (value: unknown) => unknown;
+  const normalizeUnsafe = normalize as unknown as (value: unknown) => unknown;
   if (fromSpace === toSpace) {
-    return normalize(vec3(inNode as never));
+    return normalizeUnsafe(makeVec3(inNode));
   }
-  const inNormal = vec3(inNode as never);
+  const inNormal = makeVec3(inNode);
   if (fromSpace === 'object' && toSpace === 'world') {
-    return normalize(modelNormalMatrix.mul(inNormal as never) as never);
+    return normalizeUnsafe(mul(modelNormalMatrix as never, inNormal as never));
   }
-  return normalize(mat3(modelWorldMatrix).mul(inNormal as never) as never);
+  return normalizeUnsafe(mul(mat3(modelWorldMatrix as never) as never, inNormal as never));
 };
 
 const safePowerScalar = (base: unknown, exponent: unknown): unknown =>

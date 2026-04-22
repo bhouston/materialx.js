@@ -1,6 +1,6 @@
 import type { MaterialXDocument } from '@materialx-js/materialx';
 import { Color } from 'three';
-import { cos, float, sin, vec2 } from 'three/tsl';
+import { cos, float, mul, sin, vec2 } from 'three/tsl';
 import { MeshPhysicalNodeMaterial } from 'three/webgpu';
 import type { MaterialXThreeCompileOptions, MaterialXThreeCompileResult } from '../types.js';
 import { compileMaterialXToTSL } from './compile-material.js';
@@ -62,11 +62,13 @@ export const createThreeMaterialFromDocument = (
         : typeof anisotropyRotationAssignment === 'number'
           ? float(anisotropyRotationAssignment)
           : (anisotropyRotationAssignment as never);
+    const anisotropyDirection = vec2(
+      cos(anisotropyRotationNode as never) as never,
+      sin(anisotropyRotationNode as never) as never,
+    );
 
     // Encode anisotropy direction directly in the vector assignment.
-    material.anisotropyNode = vec2(cos(anisotropyRotationNode as never), sin(anisotropyRotationNode as never)).mul(
-      anisotropyStrengthNode as never,
-    );
+    material.anisotropyNode = mul(anisotropyDirection as never, anisotropyStrengthNode as never) as never;
 
     // Avoid a second rotation pass from MeshPhysicalMaterial defaults/properties.
     material.anisotropyRotation = 0;

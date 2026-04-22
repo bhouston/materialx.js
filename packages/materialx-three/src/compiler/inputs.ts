@@ -56,7 +56,6 @@ export const createResolveInputNode =
     const reference = resolveInputReference(input, scopeGraph, context.index);
     if (reference?.fromNode) {
       const requestedOutput =
-        reference.fromOutput?.output ??
         reference.fromOutput?.attributes.output ??
         input.output ??
         input.attributes.output ??

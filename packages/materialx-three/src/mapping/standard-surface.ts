@@ -13,8 +13,7 @@ const mixUnsafe = mix as unknown as (left: unknown, right: unknown, alpha: unkno
 const dotUnsafe = dot as unknown as (left: unknown, right: unknown) => unknown;
 
 const mixNodeValues = (left: unknown, right: unknown, alpha: unknown): unknown =>
-  (left as { mix?: (other: unknown, factor: unknown) => unknown }).mix?.(right, alpha) ??
-  mixUnsafe(left, right, alpha);
+  (left as { mix?: (other: unknown, factor: unknown) => unknown }).mix?.(right, alpha) ?? mixUnsafe(left, right, alpha);
 
 const toOpacityScalar = (opacity: unknown): unknown => {
   if (typeof opacity === 'number') {

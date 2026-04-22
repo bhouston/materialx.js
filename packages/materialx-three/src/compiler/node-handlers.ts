@@ -512,7 +512,10 @@ export const buildNodeHandlerRegistry = (deps: NodeHandlerDeps): Map<string, Nod
   // MaterialX "dot" node is a utility metadata passthrough (input: "in"),
   // while "dotproduct" is the binary math operation (inputs: "in1"/"in2").
   map.set('dot', (node, context, scopeGraph) => r(node, 'in', 0, context, scopeGraph));
-  map.set('dotproduct', bin(deps, 'in1', 'in2', (left, right) => dot(left as never, right as never)));
+  map.set(
+    'dotproduct',
+    bin(deps, 'in1', 'in2', (left, right) => dot(left as never, right as never)),
+  );
 
   map.set('magnitude', (node, context, scopeGraph) => {
     const inNode = r(node, 'in', vec3(0, 0, 0), context, scopeGraph);

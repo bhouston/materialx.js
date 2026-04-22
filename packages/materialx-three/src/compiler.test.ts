@@ -244,7 +244,7 @@ describe('materialx-three compiler', () => {
     expect(compiled.material.specularIntensityNode).toBeDefined();
     expect(compiled.material.specularColorNode).toBeDefined();
     expect(compiled.material.anisotropyNode).toBeDefined();
-    expect(compiled.material.anisotropyRotation).toBe(0.2);
+    expect(compiled.material.anisotropyRotation).toBe(0);
     expect(compiled.material.clearcoatNormalNode).toBeDefined();
     expect(compiled.material.sheenNode).toBeDefined();
     expect(compiled.material.sheenRoughnessNode).toBeDefined();
@@ -448,7 +448,7 @@ describe('materialx-three compiler', () => {
     expect(compiled.material.transmission).toBe(0);
   });
 
-  it('defaults thickness to 1 when transmission is enabled without thickness input', () => {
+  it('maps open_pbr transmission_depth to thickness when authored', () => {
     const xml = `<?xml version="1.0"?>
 <materialx version="1.39" colorspace="lin_rec709">
   <open_pbr_surface name="SR_OpenPbrHoneyLike" type="surfaceshader">
@@ -461,6 +461,25 @@ describe('materialx-three compiler', () => {
   </open_pbr_surface>
   <surfacematerial name="M_OpenPbrHoneyLike" type="material">
     <input name="surfaceshader" type="surfaceshader" nodename="SR_OpenPbrHoneyLike" />
+  </surfacematerial>
+</materialx>`;
+    const compiled = createThreeMaterialFromDocument(parseMaterialX(xml));
+    expect(compiled.result.assignments.thicknessNode).toBeDefined();
+    expect(compiled.material.thicknessNode).toBeDefined();
+    expect(compiled.material.transmission).toBe(1);
+  });
+
+  it('defaults open_pbr thickness to 1 when transmission_depth is omitted', () => {
+    const xml = `<?xml version="1.0"?>
+<materialx version="1.39" colorspace="lin_rec709">
+  <open_pbr_surface name="SR_OpenPbrGlassLike" type="surfaceshader">
+    <input name="base_color" type="color3" value="1.0, 1.0, 1.0" />
+    <input name="specular_roughness" type="float" value="0.0" />
+    <input name="specular_ior" type="float" value="1.52" />
+    <input name="transmission_weight" type="float" value="1.0" />
+  </open_pbr_surface>
+  <surfacematerial name="M_OpenPbrGlassLike" type="material">
+    <input name="surfaceshader" type="surfaceshader" nodename="SR_OpenPbrGlassLike" />
   </surfacematerial>
 </materialx>`;
     const compiled = createThreeMaterialFromDocument(parseMaterialX(xml));

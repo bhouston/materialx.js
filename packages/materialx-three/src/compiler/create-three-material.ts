@@ -1,5 +1,6 @@
 import type { MaterialXDocument } from '@materialx-js/materialx';
 import { Color } from 'three';
+import { cos, float, sin, vec2 } from 'three/tsl';
 import { MeshPhysicalNodeMaterial } from 'three/webgpu';
 import type { MaterialXThreeCompileOptions, MaterialXThreeCompileResult } from '../types.js';
 import { compileMaterialXToTSL } from './compile-material.js';
@@ -46,10 +47,29 @@ export const createThreeMaterialFromDocument = (
   material.metalnessNode = result.assignments.metalnessNode as never;
   material.specularIntensityNode = result.assignments.specularIntensityNode as never;
   material.specularColorNode = result.assignments.specularColorNode as never;
-  material.anisotropyNode = result.assignments.anisotropyNode as never;
-  const anisotropyRotation = readNumberLiteral(result.assignments.anisotropyRotation);
-  if (anisotropyRotation !== undefined) {
-    material.anisotropyRotation = anisotropyRotation;
+  const anisotropyStrengthAssignment = result.assignments.anisotropyNode;
+  const anisotropyRotationAssignment = result.assignments.anisotropyRotation;
+  if (anisotropyStrengthAssignment !== undefined || anisotropyRotationAssignment !== undefined) {
+    const anisotropyStrengthNode =
+      anisotropyStrengthAssignment === undefined
+        ? float(0)
+        : typeof anisotropyStrengthAssignment === 'number'
+          ? float(anisotropyStrengthAssignment)
+          : (anisotropyStrengthAssignment as never);
+    const anisotropyRotationNode =
+      anisotropyRotationAssignment === undefined
+        ? float(0)
+        : typeof anisotropyRotationAssignment === 'number'
+          ? float(anisotropyRotationAssignment)
+          : (anisotropyRotationAssignment as never);
+
+    // Encode anisotropy direction directly in the vector assignment.
+    material.anisotropyNode = vec2(cos(anisotropyRotationNode as never), sin(anisotropyRotationNode as never)).mul(
+      anisotropyStrengthNode as never,
+    );
+
+    // Avoid a second rotation pass from MeshPhysicalMaterial defaults/properties.
+    material.anisotropyRotation = 0;
   }
   material.clearcoatNode = result.assignments.clearcoatNode as never;
   material.clearcoatRoughnessNode = result.assignments.clearcoatRoughnessNode as never;

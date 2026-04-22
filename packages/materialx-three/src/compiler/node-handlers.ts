@@ -4,7 +4,6 @@ import {
   add,
   acos,
   asin,
-  atan2,
   ceil,
   checker,
   clamp,
@@ -35,6 +34,7 @@ import {
   mx_ifequal,
   mx_ifgreater,
   mx_ifgreatereq,
+  mx_atan2,
   mx_noise_float,
   mx_place2d,
   mx_ramplr,
@@ -309,8 +309,7 @@ export const buildNodeHandlerRegistry = (deps: NodeHandlerDeps): Map<string, Nod
   map.set('bump', (node, context, scopeGraph) => {
     const height = r(node, 'height', 0, context, scopeGraph);
     const scaleNode = r(node, 'scale', 1, context, scopeGraph);
-    const normalFromHeight = mx_heighttonormal(height as never, float(1));
-    return compileNormalMapVector(normalFromHeight, scaleNode);
+    return normalMap(mx_heighttonormal(height as never, float(1)) as never, scaleNode as never);
   });
 
   map.set('convert', (node, context, scopeGraph) => {
@@ -535,7 +534,7 @@ export const buildNodeHandlerRegistry = (deps: NodeHandlerDeps): Map<string, Nod
   map.set('atan2', (node, context, scopeGraph) => {
     const inY = r(node, 'iny', 0, context, scopeGraph);
     const inX = r(node, 'inx', 1, context, scopeGraph);
-    return atan2(inY as never, inX as never);
+    return mx_atan2(inY as never, inX as never);
   });
 
   map.set(
@@ -1188,7 +1187,7 @@ export const buildNodeHandlerRegistry = (deps: NodeHandlerDeps): Map<string, Nod
     const radialVal = clamp(mul(radialDist as never, float(2)) as never, float(0), float(1));
 
     const circularAngle = add(
-      div(atan2(centered_t as never, centered_s as never) as never, float(Math.PI * 2)) as never,
+      div(mx_atan2(centered_t as never, centered_s as never) as never, float(Math.PI * 2)) as never,
       float(0.5),
     );
 

@@ -12,11 +12,11 @@
   },
   "dependencies": {
     "@materialx-js/materialx": "workspace:*",
-    "three": "^0.181.0"
+    "three": "0.184.0"
   },
   "devDependencies": {
     "@types/node": "^24",
-    "@types/three": "^0.181.0",
+    "@types/three": "^0.184.0",
     "vitest": "^4.0.0"
   }
 }

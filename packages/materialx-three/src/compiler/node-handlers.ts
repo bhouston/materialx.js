@@ -60,7 +60,6 @@ import {
   round,
   sign,
   sin,
-  smoothstep,
   sqrt,
   step,
   sub,
@@ -123,7 +122,10 @@ const mx_ifgreatereq_materialx = (value1: unknown, value2: unknown, in1: unknown
 const mx_ifequal_materialx = (value1: unknown, value2: unknown, in1: unknown, in2: unknown): unknown =>
   mx_ifequal(value1 as never, value2 as never, in2 as never, in1 as never);
 const mx_smoothstep_materialx = (inNode: unknown, low: unknown, high: unknown): unknown => {
-  const hermite = smoothstep(low as never, high as never, inNode as never);
+  const range = sub(high as never, low as never);
+  const safeRange = max(abs(range as never) as never, float(1e-6));
+  const t = clamp(div(sub(inNode as never, low as never), safeRange as never) as never, float(0), float(1));
+  const hermite = mul(mul(t as never, t as never) as never, sub(float(3), mul(float(2), t as never) as never) as never);
   const fallback = step(high as never, inNode as never);
   const useFallback = step(high as never, low as never);
   return mix(hermite as never, fallback as never, useFallback as never);
@@ -1215,6 +1217,9 @@ export const buildNodeHandlerRegistry = (deps: NodeHandlerDeps): Map<string, Nod
     const prevColor = r(node, 'prev_color', vec4(0, 0, 0, 1), context, scopeGraph);
     const intervalNum = r(node, 'interval_num', 1, context, scopeGraph);
     const numIntervals = r(node, 'num_intervals', 2, context, scopeGraph);
+    const interpolationFloat = float(interpolation as never);
+    const intervalNumFloat = float(intervalNum as never);
+    const numIntervalsFloat = float(numIntervals as never);
     const mixColor4 = (bg: unknown, fg: unknown, factor: unknown): unknown =>
       vec4(
         mix(getNodeChannel(bg, 0) as never, getNodeChannel(fg, 0) as never, factor as never),
@@ -1227,14 +1232,14 @@ export const buildNodeHandlerRegistry = (deps: NodeHandlerDeps): Map<string, Nod
     const rangeSize = sub(interval2 as never, interval1 as never);
     const safeRange = max(rangeSize as never, float(1e-6));
     const linearRemap = div(sub(linearClamped as never, interval1 as never), safeRange as never);
-    const smoothVal = smoothstep(interval1 as never, interval2 as never, x as never);
-    const interpolationDistanceToLinear = abs(sub(interpolation as never, float(0)) as never);
+    const smoothVal = mx_smoothstep_materialx(x, interval1, interval2);
+    const interpolationDistanceToLinear = abs(sub(interpolationFloat as never, float(0)) as never);
     const useLinear = sub(float(1), step(float(0.5), interpolationDistanceToLinear as never));
     const interpFactor = mix(smoothVal as never, linearRemap as never, useLinear as never);
 
     const mixedColor = mixColor4(color1, color2, interpFactor);
     const stepColor = mixColor4(color1, color2, step(interval2 as never, x as never));
-    const interpolationDistanceToStep = abs(sub(interpolation as never, float(2)) as never);
+    const interpolationDistanceToStep = abs(sub(interpolationFloat as never, float(2)) as never);
     const useStep = sub(float(1), step(float(0.5), interpolationDistanceToStep as never));
     const interpolated = mixColor4(mixedColor, stepColor, useStep);
     const withinInterval = mixColor4(
@@ -1242,7 +1247,7 @@ export const buildNodeHandlerRegistry = (deps: NodeHandlerDeps): Map<string, Nod
       interpolated,
       step(add(interval1 as never, float(1e-6)) as never, x as never),
     );
-    return mixColor4(withinInterval, prevColor, step(numIntervals as never, intervalNum as never));
+    return mixColor4(withinInterval, prevColor, step(numIntervalsFloat as never, intervalNumFloat as never));
   });
 
   map.set('ramp', (node, context, scopeGraph) => {
@@ -1250,6 +1255,9 @@ export const buildNodeHandlerRegistry = (deps: NodeHandlerDeps): Map<string, Nod
     const rampType = r(node, 'type', 0, context, scopeGraph);
     const interpolation = r(node, 'interpolation', 1, context, scopeGraph);
     const numIntervals = r(node, 'num_intervals', 2, context, scopeGraph);
+    const rampTypeFloat = float(rampType as never);
+    const interpolationFloat = float(interpolation as never);
+    const numIntervalsFloat = float(numIntervals as never);
     const mixColor4 = (bg: unknown, fg: unknown, factor: unknown): unknown =>
       vec4(
         mix(getNodeChannel(bg, 0) as never, getNodeChannel(fg, 0) as never, factor as never),
@@ -1285,9 +1293,9 @@ export const buildNodeHandlerRegistry = (deps: NodeHandlerDeps): Map<string, Nod
       float(1),
     );
 
-    const typeDistanceToRadial = abs(sub(rampType as never, float(1)) as never);
-    const typeDistanceToCircular = abs(sub(rampType as never, float(2)) as never);
-    const typeDistanceToBox = abs(sub(rampType as never, float(3)) as never);
+    const typeDistanceToRadial = abs(sub(rampTypeFloat as never, float(1)) as never);
+    const typeDistanceToCircular = abs(sub(rampTypeFloat as never, float(2)) as never);
+    const typeDistanceToBox = abs(sub(rampTypeFloat as never, float(3)) as never);
     const useRadial = sub(float(1), step(float(0.5), typeDistanceToRadial as never));
     const useCircular = sub(float(1), step(float(0.5), typeDistanceToCircular as never));
     const useBox = sub(float(1), step(float(0.5), typeDistanceToBox as never));
@@ -1316,14 +1324,14 @@ export const buildNodeHandlerRegistry = (deps: NodeHandlerDeps): Map<string, Nod
       const safeRange = max(rangeSize as never, float(1e-6));
       const linearClamped = clamp(rampX as never, iv1 as never, iv2 as never);
       const linearRemap = div(sub(linearClamped as never, iv1 as never), safeRange as never);
-      const smoothVal = smoothstep(iv1 as never, iv2 as never, rampX as never);
+      const smoothVal = mx_smoothstep_materialx(rampX, iv1, iv2);
 
-      const interpolationDistanceToLinear = abs(sub(interpolation as never, float(0)) as never);
+      const interpolationDistanceToLinear = abs(sub(interpolationFloat as never, float(0)) as never);
       const useLinear = sub(float(1), step(float(0.5), interpolationDistanceToLinear as never));
       const interpFactor = mix(smoothVal as never, linearRemap as never, useLinear as never);
       const mixedColor = mixColor4(c1, c2, interpFactor);
       const stepColor = mixColor4(c1, c2, step(iv2 as never, rampX as never));
-      const interpolationDistanceToStep = abs(sub(interpolation as never, float(2)) as never);
+      const interpolationDistanceToStep = abs(sub(interpolationFloat as never, float(2)) as never);
       const useStep = sub(float(1), step(float(0.5), interpolationDistanceToStep as never));
       const interpolated = mixColor4(mixedColor, stepColor, useStep);
       const withinInterval = mixColor4(
@@ -1331,7 +1339,7 @@ export const buildNodeHandlerRegistry = (deps: NodeHandlerDeps): Map<string, Nod
         interpolated,
         step(add(iv1 as never, float(1e-6)) as never, rampX as never),
       );
-      result = mixColor4(withinInterval, result, step(numIntervals as never, intNum as never));
+      result = mixColor4(withinInterval, result, step(numIntervalsFloat as never, intNum as never));
     }
 
     return result;

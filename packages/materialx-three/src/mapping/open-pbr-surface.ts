@@ -38,6 +38,14 @@ const toGltfDispersion = (abbeNumber: unknown, dispersionScale: unknown): unknow
 };
 
 const hasNodeValue = (value: unknown): boolean => value !== undefined && value !== null;
+const isConstNear = (value: unknown, target: number, epsilon = 1e-6): boolean => {
+  const literal = readNumberLiteral(value);
+  if (literal === undefined) return false;
+  return Math.abs(literal - target) <= epsilon;
+};
+const isEffectivelyZero = (value: unknown): boolean => isConstNear(value, 0);
+const isEffectivelyOne = (value: unknown): boolean => isConstNear(value, 1);
+const isEnabledWeightNode = (value: unknown): boolean => hasNodeValue(value) && !isEffectivelyZero(value);
 
 const multiplyNodeValues = (left: unknown, right: unknown): unknown =>
   (left as { mul?: (other: unknown) => unknown }).mul?.(right) ?? mul(left as never, right as never);
@@ -116,31 +124,51 @@ export const buildOpenPbrSurfaceAssignments = (
   const thinFilmThicknessNanometers = mul(thinFilmThicknessMicrometers as never, 1000 as never);
 
   const thicknessNode = applyThinWalledThickness(geometryThinWalled, transmissionDepth);
+  const coatEnabled = isEnabledWeightNode(coat);
+  const fuzzEnabled = isEnabledWeightNode(fuzz);
+  const transmissionEnabled = isEnabledWeightNode(transmission);
+  const thinFilmEnabled = isEnabledWeightNode(thinFilmWeight);
+  const anisotropyEnabled = !isEffectivelyZero(anisotropy);
 
-  return {
+  const assignments: MaterialSlotAssignments = {
     colorNode,
     roughnessNode: roughness,
-    metalnessNode: metalness,
-    specularIntensityNode: specular,
     specularColorNode: specularColor,
-    anisotropyNode: anisotropy,
-    anisotropyRotation: 0,
-    clearcoatNode: coat,
-    clearcoatRoughnessNode: coatRoughness,
-    clearcoatNormalNode: coatNormal,
-    sheenNode,
-    sheenRoughnessNode,
     emissiveNode,
-    opacityNode: opacity,
-    transmissionNode: transmission,
-    thicknessNode,
-    dispersionNode: dispersion,
-    attenuationColorNode: transmissionColor,
-    attenuationDistanceNode: transmissionDepth,
-    iorNode: ior,
-    iridescenceNode: thinFilmWeight,
-    iridescenceIORNode: thinFilmIor,
-    iridescenceThicknessNode: thinFilmThicknessNanometers,
     normalNode: normal,
   };
+
+  if (!isEffectivelyZero(metalness)) assignments.metalnessNode = metalness;
+  if (!isEffectivelyOne(specular)) assignments.specularIntensityNode = specular;
+  if (!isConstNear(ior, 1.5)) assignments.iorNode = ior;
+  if (anisotropyEnabled) {
+    assignments.anisotropyNode = anisotropy;
+    assignments.anisotropyRotation = 0;
+  }
+  if (coatEnabled) {
+    assignments.clearcoatNode = coat;
+    if (!isEffectivelyZero(coatRoughness)) assignments.clearcoatRoughnessNode = coatRoughness;
+    assignments.clearcoatNormalNode = coatNormal;
+  }
+  if (fuzzEnabled) {
+    assignments.sheenNode = sheenNode;
+    if (!isConstNear(fuzzRoughness, 0.5)) assignments.sheenRoughnessNode = sheenRoughnessNode;
+  }
+  if (!isEffectivelyOne(opacity)) assignments.opacityNode = opacity;
+  if (transmissionEnabled) {
+    assignments.transmissionNode = transmission;
+    assignments.attenuationColorNode = transmissionColor;
+    if (thicknessNode !== undefined && !isEffectivelyZero(thicknessNode)) {
+      assignments.thicknessNode = thicknessNode;
+      assignments.attenuationDistanceNode = transmissionDepth;
+    }
+    if (dispersion !== undefined && !isEffectivelyZero(dispersion)) assignments.dispersionNode = dispersion;
+  }
+  if (thinFilmEnabled) {
+    assignments.iridescenceNode = thinFilmWeight;
+    if (!isConstNear(thinFilmIor, 1.4)) assignments.iridescenceIORNode = thinFilmIor;
+    if (!isEffectivelyZero(thinFilmThicknessMicrometers)) assignments.iridescenceThicknessNode = thinFilmThicknessNanometers;
+  }
+
+  return assignments;
 };

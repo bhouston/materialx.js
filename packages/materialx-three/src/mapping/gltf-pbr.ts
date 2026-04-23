@@ -6,6 +6,26 @@ export interface GltfPbrSurfaceInputs {
   getInputNode(node: MaterialXNode, name: string, fallback: unknown): unknown;
 }
 
+const readNumberLiteral = (value: unknown): number | undefined => {
+  if (typeof value === 'number') return value;
+  if (!value || typeof value !== 'object') return undefined;
+  const nodeValue = (value as { value?: unknown }).value;
+  if (typeof nodeValue === 'number') return nodeValue;
+  const nestedNodeValue = (value as { node?: { value?: unknown } }).node?.value;
+  if (typeof nestedNodeValue === 'number') return nestedNodeValue;
+  return undefined;
+};
+
+const isConstNear = (value: unknown, target: number, epsilon = 1e-6): boolean => {
+  const literal = readNumberLiteral(value);
+  if (literal === undefined) return false;
+  return Math.abs(literal - target) <= epsilon;
+};
+
+const isEffectivelyZero = (value: unknown): boolean => isConstNear(value, 0);
+const isEffectivelyOne = (value: unknown): boolean => isConstNear(value, 1);
+const isEnabledWeightNode = (value: unknown): boolean => value !== undefined && value !== null && !isEffectivelyZero(value);
+
 const multiplyNodeValues = (left: unknown, right: unknown): unknown =>
   (left as { mul?: (other: unknown) => unknown }).mul?.(right) ?? mul(left as never, right as never);
 
@@ -81,33 +101,49 @@ export const buildGltfPbrSurfaceAssignments = (
   const opacityNode = buildOpacityNode(alpha, alphaMode, alphaCutoff);
   const attenuationDistanceNode = toAttenuationDistance(attenuationDistance, hasInput('attenuation_color'));
   const iridescenceThicknessNode = toIridescenceThicknessNode(iridescenceThickness);
+  const transmissionEnabled = isEnabledWeightNode(transmission);
+  const clearcoatEnabled = isEnabledWeightNode(clearcoat);
+  const sheenEnabled = hasInput('sheen_color') || isEnabledWeightNode(sheenRoughness);
+  const iridescenceEnabled = isEnabledWeightNode(iridescence);
+  const anisotropyEnabled = !isEffectivelyZero(anisotropyStrength) || !isEffectivelyZero(anisotropyRotation);
 
-  return {
+  const assignments: MaterialSlotAssignments = {
     colorNode: baseColor,
     aoNode: occlusion,
     roughnessNode: roughness,
     metalnessNode: metallic,
-    specularIntensityNode: specular,
     specularColorNode: specularColor,
-    anisotropyNode: anisotropyStrength,
-    anisotropyRotation,
-    clearcoatNode: clearcoat,
-    clearcoatRoughnessNode: clearcoatRoughness,
-    clearcoatNormalNode: clearcoatNormal,
-    sheenNode: sheenColor,
-    sheenColorNode: sheenColor,
-    sheenRoughnessNode: sheenRoughness,
     normalNode: normal,
     emissiveNode,
-    opacityNode,
-    transmissionNode: transmission,
-    thicknessNode: thickness,
-    dispersionNode: dispersion,
     attenuationColorNode: attenuationColor,
     attenuationDistanceNode,
-    iorNode: ior,
-    iridescenceNode: iridescence,
-    iridescenceIORNode: iridescenceIor,
-    iridescenceThicknessNode,
   };
+
+  if (!isEffectivelyOne(specular)) assignments.specularIntensityNode = specular;
+  if (!isConstNear(ior, 1.5)) assignments.iorNode = ior;
+  if (!isEffectivelyOne(opacityNode)) assignments.opacityNode = opacityNode;
+  if (anisotropyEnabled) {
+    assignments.anisotropyNode = anisotropyStrength;
+    assignments.anisotropyRotation = anisotropyRotation;
+  }
+  if (clearcoatEnabled) {
+    assignments.clearcoatNode = clearcoat;
+    if (!isEffectivelyZero(clearcoatRoughness)) assignments.clearcoatRoughnessNode = clearcoatRoughness;
+    assignments.clearcoatNormalNode = clearcoatNormal;
+  }
+  if (sheenEnabled) {
+    assignments.sheenNode = sheenColor;
+    assignments.sheenColorNode = sheenColor;
+    if (!isEffectivelyZero(sheenRoughness)) assignments.sheenRoughnessNode = sheenRoughness;
+  }
+  if (transmissionEnabled) assignments.transmissionNode = transmission;
+  if (thickness !== undefined && !isEffectivelyZero(thickness)) assignments.thicknessNode = thickness;
+  if (dispersion !== undefined && !isEffectivelyZero(dispersion)) assignments.dispersionNode = dispersion;
+  if (iridescenceEnabled) {
+    assignments.iridescenceNode = iridescence;
+    if (!isConstNear(iridescenceIor, 1.3)) assignments.iridescenceIORNode = iridescenceIor;
+    if (!isConstNear(iridescenceThicknessNode, 100)) assignments.iridescenceThicknessNode = iridescenceThicknessNode;
+  }
+
+  return assignments;
 };

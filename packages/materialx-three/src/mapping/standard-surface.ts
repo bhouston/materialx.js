@@ -6,6 +6,26 @@ export interface StandardSurfaceInputs {
   getInputNode(node: MaterialXNode, name: string, fallback: unknown): unknown;
 }
 
+const readNumberLiteral = (value: unknown): number | undefined => {
+  if (typeof value === 'number') return value;
+  if (!value || typeof value !== 'object') return undefined;
+  const nodeValue = (value as { value?: unknown }).value;
+  if (typeof nodeValue === 'number') return nodeValue;
+  const nestedNodeValue = (value as { node?: { value?: unknown } }).node?.value;
+  if (typeof nestedNodeValue === 'number') return nestedNodeValue;
+  return undefined;
+};
+
+const isConstNear = (value: unknown, target: number, epsilon = 1e-6): boolean => {
+  const literal = readNumberLiteral(value);
+  if (literal === undefined) return false;
+  return Math.abs(literal - target) <= epsilon;
+};
+
+const isEffectivelyZero = (value: unknown): boolean => isConstNear(value, 0);
+const isEffectivelyOne = (value: unknown): boolean => isConstNear(value, 1);
+const isEnabledWeightNode = (value: unknown): boolean => value !== undefined && value !== null && !isEffectivelyZero(value);
+
 export const buildStandardSurfaceAssignments = (
   surfaceNode: MaterialXNode,
   helpers: StandardSurfaceInputs,
@@ -74,29 +94,49 @@ export const buildStandardSurfaceAssignments = (
   if (emissionColor !== undefined) {
     emissiveNode = emissiveNode ? mul(emissiveNode as never, emissionColor as never) : emissionColor;
   }
-  return {
+
+  const transmissionEnabled = isEnabledWeightNode(transmission);
+  const clearcoatEnabled = isEnabledWeightNode(coat);
+  const sheenEnabled = isEnabledWeightNode(sheen);
+  const thinFilmEnabled = isEnabledWeightNode(thinFilmThickness);
+  const anisotropyEnabled = !isEffectivelyZero(anisotropy) || !isEffectivelyZero(anisotropyRotation);
+
+  const assignments: MaterialSlotAssignments = {
     colorNode,
     roughnessNode: roughness,
-    metalnessNode: metalness,
-    specularIntensityNode: specular,
     specularColorNode: specularColor,
-    anisotropyNode: anisotropy,
-    anisotropyRotation,
-    clearcoatNode: coat,
-    clearcoatRoughnessNode: coatRoughness,
-    clearcoatNormalNode: coatNormal,
-    sheenNode: sheen,
     sheenColorNode: sheenColor,
-    sheenRoughnessNode: sheenRoughness,
     emissiveNode,
-    opacityNode: opacity,
-    transmissionNode: transmission,
-    transmissionColorNode: transmissionColor,
-    thicknessNode: transmissionDepth,
-    iorNode: ior,
-    iridescenceNode: thinFilmThickness !== undefined ? float(1) : undefined,
-    iridescenceIORNode: thinFilmIOR,
-    iridescenceThicknessNode: thinFilmThickness ?? float(0),
     normalNode: normal,
   };
+
+  if (!isEffectivelyZero(metalness)) assignments.metalnessNode = metalness;
+  if (!isEffectivelyOne(specular)) assignments.specularIntensityNode = specular;
+  if (!isConstNear(ior, 1.5)) assignments.iorNode = ior;
+  if (anisotropyEnabled) {
+    assignments.anisotropyNode = anisotropy;
+    assignments.anisotropyRotation = anisotropyRotation;
+  }
+  if (clearcoatEnabled) {
+    assignments.clearcoatNode = coat;
+    assignments.clearcoatRoughnessNode = coatRoughness;
+    assignments.clearcoatNormalNode = coatNormal;
+  }
+  if (sheenEnabled) {
+    assignments.sheenNode = sheen;
+    if (!isConstNear(sheenRoughness, 0.3)) assignments.sheenRoughnessNode = sheenRoughness;
+  }
+  if (!isEffectivelyOne(opacity)) assignments.opacityNode = opacity;
+  if (transmissionEnabled) {
+    assignments.transmissionNode = transmission;
+    assignments.transmissionColorNode = transmissionColor;
+    if (!isEffectivelyZero(transmissionDepth)) assignments.thicknessNode = transmissionDepth;
+  }
+  if (thinFilmEnabled) {
+    assignments.iridescenceNode = float(1);
+    assignments.iridescenceIORNode = thinFilmIOR;
+    assignments.iridescenceThicknessNode = thinFilmThickness;
+  }
+
+  return assignments;
 };

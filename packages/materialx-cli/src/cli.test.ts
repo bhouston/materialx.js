@@ -18,7 +18,7 @@ extendMatchers();
 
 describe('materialx-cli', () => {
   beforeAll(() => {
-    execSync('pnpm --filter @materialx-js/materialx build && pnpm --filter @materialx-js/materialx-cli build', {
+    execSync('pnpm --filter @material-viewer/materialx build && pnpm --filter @material-viewer/materialx-cli build', {
       cwd: repoRoot,
       stdio: 'inherit',
     });

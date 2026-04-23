@@ -1,4 +1,4 @@
-import type { MaterialXNode, MaterialXNodeGraph } from '@materialx-js/materialx';
+import type { MaterialXNode, MaterialXNodeGraph } from '@material-viewer/materialx';
 import type { CompileContext } from './internal-types.js';
 
 type ResolveInputNode = (

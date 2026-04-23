@@ -1,4 +1,4 @@
-import type { MaterialXDocument, MaterialXNode, MaterialXNodeGraph } from '@materialx-js/materialx';
+import type { MaterialXDocument, MaterialXNode, MaterialXNodeGraph } from '@material-viewer/materialx';
 import { buildGraphIndex, resolveInputReference } from '../graph/resolve.js';
 import { buildGltfPbrSurfaceAssignments } from '../mapping/gltf-pbr.js';
 import { supportedNodeCategories } from '../mapping/mx-node-map.js';

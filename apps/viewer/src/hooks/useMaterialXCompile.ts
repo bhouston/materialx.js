@@ -1,5 +1,5 @@
-import { parseMaterialX } from '@materialx-js/materialx/dist/xml.js';
-import { createThreeMaterialFromDocument } from '@materialx-js/materialx-three';
+import { parseMaterialX } from '@material-viewer/materialx/dist/xml.js';
+import { createThreeMaterialFromDocument } from '@material-viewer/materialx-three';
 import { useEffect, useMemo, useRef } from 'react';
 import { createBrowserTextureResolver } from '../lib/browser-texture-resolver';
 

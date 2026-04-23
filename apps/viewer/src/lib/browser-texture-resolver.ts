@@ -1,4 +1,4 @@
-import type { TextureResolver } from '@materialx-js/materialx-three';
+import type { TextureResolver } from '@material-viewer/materialx-three';
 import { RepeatWrapping, TextureLoader } from 'three';
 import type { Texture } from 'three';
 

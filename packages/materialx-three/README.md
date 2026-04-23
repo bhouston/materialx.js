@@ -1,8 +1,8 @@
-# @materialx-js/materialx-three
+# @material-viewer/materialx-three
 
 MaterialX-to-Three.js bridge for compiling MaterialX documents into Three TSL-driven materials.
 
-This package is designed to sit on top of `@materialx-js/materialx` and produce `MeshPhysicalNodeMaterial` assignments from MaterialX graphs, with a current focus on Standard Surface and OpenPBR workflows.
+This package is designed to sit on top of `@material-viewer/materialx` and produce `MeshPhysicalNodeMaterial` assignments from MaterialX graphs, with a current focus on Standard Surface and OpenPBR workflows.
 
 ## Current Scope
 
@@ -52,19 +52,19 @@ pnpm install
 For package-local development:
 
 ```bash
-pnpm --filter @materialx-js/materialx-three build
-pnpm --filter @materialx-js/materialx-three dev
+pnpm --filter @material-viewer/materialx-three build
+pnpm --filter @material-viewer/materialx-three dev
 ```
 
 ## Basic Usage
 
 ```ts
-import { parseMaterialX } from '@materialx-js/materialx';
+import { parseMaterialX } from '@material-viewer/materialx';
 import {
   compileMaterialXToTSL,
   createThreeMaterialFromDocument,
   createTextureResolver,
-} from '@materialx-js/materialx-three';
+} from '@material-viewer/materialx-three';
 
 const document = parseMaterialX(xmlString);
 
@@ -97,9 +97,9 @@ The compiler does not fetch images directly. Instead it delegates to a `TextureR
 From repo root:
 
 ```bash
-pnpm --filter @materialx-js/materialx-three build
-pnpm --filter @materialx-js/materialx-three dev
-pnpm --filter @materialx-js/materialx-three generate:coverage
+pnpm --filter @material-viewer/materialx-three build
+pnpm --filter @material-viewer/materialx-three dev
+pnpm --filter @material-viewer/materialx-three generate:coverage
 ```
 
 `generate:coverage` regenerates `packages/materialx-three/SUPPORTED_NODES.md`.

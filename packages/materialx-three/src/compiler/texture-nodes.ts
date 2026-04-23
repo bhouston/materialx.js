@@ -1,4 +1,4 @@
-import type { MaterialXNode, MaterialXNodeGraph } from '@materialx-js/materialx';
+import type { MaterialXNode, MaterialXNodeGraph } from '@material-viewer/materialx';
 import { add, mul, mx_place2d, texture, uv, vec2, vec4 } from 'three/tsl';
 import { applyTextureColorSpace } from '../runtime/colorspace.js';
 import { createTextureResolver } from '../runtime/texture-resolver.js';

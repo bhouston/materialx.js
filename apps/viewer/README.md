@@ -1,6 +1,6 @@
 # viewer
 
-Interactive app for previewing MaterialX documents through `@materialx-js/materialx-three` and Three.js TSL.
+Interactive app for previewing MaterialX documents through `@material-viewer/materialx-three` and Three.js TSL.
 
 ## What It Does
 

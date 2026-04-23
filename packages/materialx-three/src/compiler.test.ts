@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import { parseMaterialX } from '@materialx-js/materialx';
+import { parseMaterialX } from '@material-viewer/materialx';
 import { compileMaterialXToTSL, createThreeMaterialFromDocument } from './compiler.js';
 
 const sourceDir = path.dirname(fileURLToPath(import.meta.url));

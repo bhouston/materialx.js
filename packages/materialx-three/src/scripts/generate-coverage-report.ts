@@ -1,7 +1,7 @@
 import { writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { materialXNodeRegistry } from '@materialx-js/materialx';
+import { materialXNodeRegistry } from '@material-viewer/materialx';
 import { supportedNodeCategories } from '../mapping/mx-node-map.js';
 
 const sourceDir = path.dirname(fileURLToPath(import.meta.url));
@@ -16,7 +16,7 @@ const toBullets = (entries: string[]): string =>
 
 const markdown = `# materialx-three Node Coverage
 
-Generated from \`@materialx-js/materialx\` node registry.
+Generated from \`@material-viewer/materialx\` node registry.
 
 ## Summary
 

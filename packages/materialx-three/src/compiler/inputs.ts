@@ -1,4 +1,4 @@
-import type { MaterialXNode, MaterialXNodeGraph } from '@materialx-js/materialx';
+import type { MaterialXNode, MaterialXNodeGraph } from '@material-viewer/materialx';
 import { resolveInputReference } from '../graph/resolve.js';
 import type { CompileContext } from './internal-types.js';
 import { toNodeValue } from './value-coercion.js';

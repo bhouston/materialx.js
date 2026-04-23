@@ -42,10 +42,10 @@ importers:
 
   apps/viewer:
     dependencies:
-      '@materialx-js/materialx':
+      '@material-viewer/materialx':
         specifier: workspace:*
         version: link:../../packages/materialx
-      '@materialx-js/materialx-three':
+      '@material-viewer/materialx-three':
         specifier: workspace:*
         version: link:../../packages/materialx-three
       '@radix-ui/react-dialog':
@@ -179,7 +179,7 @@ importers:
 
   packages/materialx-cli:
     dependencies:
-      '@materialx-js/materialx':
+      '@material-viewer/materialx':
         specifier: workspace:*
         version: link:../materialx
       type-fest:
@@ -210,7 +210,7 @@ importers:
 
   packages/materialx-three:
     dependencies:
-      '@materialx-js/materialx':
+      '@material-viewer/materialx':
         specifier: workspace:*
         version: link:../materialx
       three:

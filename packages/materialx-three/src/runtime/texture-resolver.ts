@@ -1,5 +1,5 @@
 import { Texture } from 'three';
-import type { MaterialXDocument } from '@materialx-js/materialx';
+import type { MaterialXDocument } from '@material-viewer/materialx';
 import type { TextureResolver, TextureResolverContext } from '../types.js';
 
 export interface CreateTextureResolverOptions {

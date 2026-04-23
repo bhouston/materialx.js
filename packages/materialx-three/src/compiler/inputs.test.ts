@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseMaterialX } from '@materialx-js/materialx';
+import { parseMaterialX } from '@material-viewer/materialx';
 import { buildGraphIndex } from '../graph/resolve.js';
 import { createResolveInputNode } from './inputs.js';
 

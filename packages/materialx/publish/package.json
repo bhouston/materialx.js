@@ -1,5 +1,5 @@
 {
-  "name": "@materialx-js/materialx",
+  "name": "@material-viewer/materialx",
   "version": "0.1.0",
   "source": "./src/index.ts",
   "type": "module",

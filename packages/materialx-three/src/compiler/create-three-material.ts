@@ -1,4 +1,4 @@
-import type { MaterialXDocument } from '@materialx-js/materialx';
+import type { MaterialXDocument } from '@material-viewer/materialx';
 import { Color } from 'three';
 import { cos, float, mul, sin, vec2 } from 'three/tsl';
 import { DoubleSide, MeshPhysicalNodeMaterial } from 'three/webgpu';

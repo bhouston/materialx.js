@@ -1,5 +1,5 @@
 {
-  "name": "@materialx-js/materialx-cli",
+  "name": "@material-viewer/materialx-cli",
   "version": "0.1.0",
   "bin": "./bin/cli.js",
   "source": "./src/index.ts",
@@ -11,7 +11,7 @@
     "start": "node bin/cli.js"
   },
   "dependencies": {
-    "@materialx-js/materialx": "0.1.0",
+    "@material-viewer/materialx": "0.1.0",
     "type-fest": "^5.1.0",
     "yargs": "^17.7.2",
     "yargs-file-commands": "^1.2.2"

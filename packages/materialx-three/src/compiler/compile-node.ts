@@ -1,4 +1,4 @@
-import type { MaterialXNode, MaterialXNodeGraph } from '@materialx-js/materialx';
+import type { MaterialXNode, MaterialXNodeGraph } from '@material-viewer/materialx';
 import type { CompileContext, NodeHandler } from './internal-types.js';
 import { cacheKey, createResolveInputNode, readInput } from './inputs.js';
 import { buildNodeHandlerRegistry } from './node-handlers.js';

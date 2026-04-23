@@ -1,4 +1,4 @@
-import { readMaterialX, writeMaterialX } from '@materialx-js/materialx';
+import { readMaterialX, writeMaterialX } from '@material-viewer/materialx';
 import { defineCommand } from 'yargs-file-commands';
 
 export const command = defineCommand({

@@ -1,5 +1,5 @@
 {
-  "name": "@materialx-js/materialx-three",
+  "name": "@material-viewer/materialx-three",
   "version": "0.1.0",
   "source": "./src/index.ts",
   "type": "module",
@@ -11,7 +11,7 @@
     "generate:coverage": "node ./dist/scripts/generate-coverage-report.js"
   },
   "dependencies": {
-    "@materialx-js/materialx": "0.1.0",
+    "@material-viewer/materialx": "0.1.0",
     "three": "^0.181.0"
   },
   "devDependencies": {

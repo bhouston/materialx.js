@@ -1,4 +1,4 @@
-import type { MaterialXNode } from '@materialx-js/materialx';
+import type { MaterialXNode } from '@material-viewer/materialx';
 import { clamp, float, mul } from 'three/tsl';
 import type { MaterialSlotAssignments } from '../types.js';
 

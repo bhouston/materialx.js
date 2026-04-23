@@ -1,4 +1,4 @@
-# materialx.js
+# material-viewer
 
 TypeScript monorepo for reading, validating, and writing MaterialX XML, with node definitions generated from upstream MaterialX nodedef documents.
 

@@ -1,4 +1,4 @@
-import { materialXNodeRegistry, readMaterialX, validateDocument } from '@materialx-js/materialx';
+import { materialXNodeRegistry, readMaterialX, validateDocument } from '@material-viewer/materialx';
 import { defineCommand } from 'yargs-file-commands';
 
 export const command = defineCommand({

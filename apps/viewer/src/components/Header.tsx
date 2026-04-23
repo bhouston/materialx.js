@@ -15,7 +15,7 @@ export default function Header() {
             <Box className="size-4" />
           </span>
           <span className="leading-tight">
-            <span className="block text-xs tracking-[0.14em] text-muted-foreground uppercase">materialx.js</span>
+            <span className="block text-xs tracking-[0.14em] text-muted-foreground uppercase">material-viewer</span>
             <span className="block text-sm font-semibold">Viewer</span>
           </span>
         </Link>

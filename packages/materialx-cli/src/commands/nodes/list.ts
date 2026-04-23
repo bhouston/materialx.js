@@ -1,4 +1,4 @@
-import { materialXNodeRegistry } from '@materialx-js/materialx';
+import { materialXNodeRegistry } from '@material-viewer/materialx';
 import { defineCommand } from 'yargs-file-commands';
 
 export const command = defineCommand({

@@ -1,4 +1,4 @@
-import type { MaterialXDocument, MaterialXNode } from '@materialx-js/materialx';
+import type { MaterialXDocument, MaterialXNode } from '@material-viewer/materialx';
 import type { Texture } from 'three';
 
 export interface MaterialXThreeWarning {

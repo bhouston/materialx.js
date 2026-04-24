@@ -74,6 +74,7 @@ import { parseFloatValue } from '../runtime/value-parsing.js';
 import { compileBinaryMath } from './binary-math.js';
 import type { CompileContext, MatrixValue, NodeHandler } from './internal-types.js';
 import { readInput } from './inputs.js';
+import { resolveInputReference } from '../graph/resolve.js';
 import {
   applyMatrixTransform,
   det3,
@@ -836,14 +837,23 @@ export const buildNodeHandlerRegistry = (deps: NodeHandlerDeps): Map<string, Nod
   map.set('rotate2d', (node, context, scopeGraph) => {
     const inNode = r(node, 'in', vec2(0, 0), context, scopeGraph);
     const amount = r(node, 'amount', 0, context, scopeGraph);
-    return rotate2dMaterialX(inNode, amount);
+    const inInput = readInput(node, 'in');
+    const inReference = inInput ? resolveInputReference(inInput, scopeGraph, context.index) : undefined;
+    const isDirectTexcoord = inReference?.fromNode?.category === 'texcoord';
+    if (!isDirectTexcoord) {
+      return rotate2dMaterialX(inNode, amount);
+    }
+
+    const pivotAdjusted = vec2(0, 1);
+    const centered = sub(inNode as never, pivotAdjusted as never);
+    return add(rotate2dMaterialX(centered, amount) as never, pivotAdjusted as never);
   });
 
   map.set('rotate3d', (node, context, scopeGraph) => {
     const inNode = r(node, 'in', vec3(0, 0, 0), context, scopeGraph);
     const amount = r(node, 'amount', 0, context, scopeGraph);
     const axis = normalize(r(node, 'axis', vec3(0, 1, 0), context, scopeGraph) as never);
-    const rotationRadians = mul(sub(float(0), amount as never) as never, float(Math.PI / 180.0) as never);
+    const rotationRadians = mul(amount as never, float(Math.PI / 180.0) as never);
     const s = sin(rotationRadians as never);
     const c = cos(rotationRadians as never);
     const oc = sub(float(1), c as never);

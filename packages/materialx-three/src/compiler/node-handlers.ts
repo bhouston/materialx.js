@@ -50,6 +50,7 @@ import {
   modelWorldMatrix,
   modelWorldMatrixInverse,
   normalMap,
+  normalLocal,
   positionLocal,
   normalWorld,
   normalize,
@@ -324,7 +325,10 @@ export const buildNodeHandlerRegistry = (deps: NodeHandlerDeps): Map<string, Nod
   });
 
   map.set('position', (node) => (node.attributes.space === 'world' ? positionWorld : positionLocal));
-  map.set('normal', () => normalWorld);
+  map.set('normal', (node) => {
+    const space = readSpaceInput(node, 'space', 'object');
+    return space === 'world' ? normalWorld : normalLocal;
+  });
   map.set('tangent', () => vec3(1, 0, 0));
   map.set('viewdirection', () => normalize(mul(positionWorld as never, float(-1)) as never));
 

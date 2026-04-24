@@ -1,5 +1,5 @@
 import type { MaterialXNode } from '@material-viewer/materialx';
-import { clamp, float, mul } from 'three/tsl';
+import { clamp, float, mul, mix, transformNormalToView } from 'three/tsl';
 import type { MaterialSlotAssignments } from '../types.js';
 
 export interface StandardSurfaceInputs {
@@ -101,12 +101,18 @@ export const buildStandardSurfaceAssignments = (
   const thinFilmEnabled = isEnabledWeightNode(thinFilmThickness);
   const anisotropyEnabled = !isEffectivelyZero(anisotropy) || !isEffectivelyZero(anisotropyRotation);
 
+  if (transmissionEnabled) {
+    const baseForTransmissionMix = colorNode ?? [0.8, 0.8, 0.8];
+    // Suppress diffuse/base tint as transmission ramps up.
+    colorNode = mix(baseForTransmissionMix as never, transmissionColor as never, transmission as never);
+  }
+
   const assignments: MaterialSlotAssignments = {
     colorNode,
     roughnessNode: roughness,
     specularColorNode: specularColor,
     emissiveNode,
-    normalNode: normal,
+    normalNode: normal !== undefined ? transformNormalToView(normal as never) : undefined,
   };
 
   if (!isEffectivelyZero(metalness)) assignments.metalnessNode = metalness;

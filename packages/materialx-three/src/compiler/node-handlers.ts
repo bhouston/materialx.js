@@ -1060,9 +1060,11 @@ export const buildNodeHandlerRegistry = (deps: NodeHandlerDeps): Map<string, Nod
     mx_rgbtohsv(r(node, 'in', vec3(0, 0, 0), context, scopeGraph) as never),
   );
 
-  map.set('luminance', (node, context, scopeGraph) =>
-    luminance(r(node, 'in', vec3(0, 0, 0), context, scopeGraph) as never, vec3(0.2126, 0.7152, 0.0722)),
-  );
+  map.set('luminance', (node, context, scopeGraph) => {
+    const inNode = r(node, 'in', vec3(0, 0, 0), context, scopeGraph);
+    const lumaCoeffs = r(node, 'lumacoeffs', vec3(0.2722287, 0.6740818, 0.0536895), context, scopeGraph);
+    return luminance(inNode as never, lumaCoeffs as never);
+  });
 
   map.set('contrast', (node, context, scopeGraph) => {
     const inNode = r(node, 'in', vec3(0, 0, 0), context, scopeGraph);

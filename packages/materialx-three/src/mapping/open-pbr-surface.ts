@@ -117,7 +117,7 @@ export const buildOpenPbrSurfaceAssignments = (
   const sheenNode =
     (fuzzColor as { mul?: (other: unknown) => unknown }).mul?.(fuzz) ?? mul(fuzzColor as never, fuzz as never);
   const sheenRoughnessNode =
-    typeof fuzzRoughness === 'number' ? Math.pow(fuzzRoughness, 2.5) : pow(fuzzRoughness as never, 2.5 as never);
+    typeof fuzzRoughness === 'number' ? Math.pow(fuzzRoughness, 1.5) : pow(fuzzRoughness as never, 1.5 as never);
   const emissiveNode =
     (emissionColor as { mul?: (other: unknown) => unknown }).mul?.(emissionLuminance) ??
     mul(emissionColor as never, emissionLuminance as never);
@@ -152,7 +152,7 @@ export const buildOpenPbrSurfaceAssignments = (
   }
   if (fuzzEnabled) {
     assignments.sheenNode = sheenNode;
-    if (!isConstNear(fuzzRoughness, 0.5)) assignments.sheenRoughnessNode = sheenRoughnessNode;
+    assignments.sheenRoughnessNode = sheenRoughnessNode;
   }
   if (!isEffectivelyOne(opacity)) assignments.opacityNode = opacity;
   if (transmissionEnabled) {

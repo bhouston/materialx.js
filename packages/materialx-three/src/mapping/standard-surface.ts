@@ -129,7 +129,7 @@ export const buildStandardSurfaceAssignments = (
   }
   if (sheenEnabled) {
     assignments.sheenNode = mul(sheen as never, sheenColor as never);
-    if (!isConstNear(sheenRoughness, 0.3)) assignments.sheenRoughnessNode = sheenRoughness;
+    assignments.sheenRoughnessNode = sheenRoughness;
   }
   if (!isEffectivelyOne(opacity)) assignments.opacityNode = opacity;
   if (transmissionEnabled) {

@@ -88,7 +88,8 @@ export const createThreeMaterialFromDocument = (
   material.normalNode = result.assignments.normalNode as never;
   material.emissiveNode = result.assignments.emissiveNode as never;
   material.opacityNode = opacityAssignment as never;
-  material.transparent = hasTransmission ? true : isAlphaBlendMode && hasFractionalOpacity;
+  const shouldUseOpacityBlending = isAlphaBlendMode || gltfAlphaMode === undefined;
+  material.transparent = hasTransmission ? true : shouldUseOpacityBlending && hasFractionalOpacity;
   if (isAlphaMaskMode) {
     if (gltfAlphaCutoffAssignment !== undefined) {
       material.alphaTestNode =
@@ -118,7 +119,7 @@ export const createThreeMaterialFromDocument = (
     material.side = DoubleSide;
     material.transmission = transmissionLiteral ?? 1;
     material.opacity = 1;
-  } else if (isAlphaBlendMode && opacityLiteral !== undefined) {
+  } else if (shouldUseOpacityBlending && opacityLiteral !== undefined) {
     material.opacity = opacityLiteral;
   } else {
     material.opacity = 1;

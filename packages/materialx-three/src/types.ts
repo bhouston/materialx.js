@@ -51,6 +51,8 @@ export interface MaterialSlotAssignments {
   iridescenceNode?: unknown;
   iridescenceIORNode?: unknown;
   iridescenceThicknessNode?: unknown;
+  gltfAlphaMode?: 'opaque' | 'mask' | 'blend';
+  gltfAlphaCutoffNode?: unknown;
 }
 
 export interface MaterialXThreeCompileResult {

@@ -31,6 +31,10 @@ export const createThreeMaterialFromDocument = (
   const material = new MeshPhysicalNodeMaterial();
   const opacityAssignment = result.assignments.opacityNode;
   const transmissionAssignment = result.assignments.transmissionNode;
+  const gltfAlphaMode = result.assignments.gltfAlphaMode;
+  const gltfAlphaCutoffAssignment = result.assignments.gltfAlphaCutoffNode;
+  const isAlphaMaskMode = gltfAlphaMode === 'mask';
+  const isAlphaBlendMode = gltfAlphaMode === 'blend';
   const opacityLiteral = readNumberLiteral(opacityAssignment);
   const transmissionLiteral = readNumberLiteral(transmissionAssignment);
   const hasTransmission =
@@ -84,7 +88,19 @@ export const createThreeMaterialFromDocument = (
   material.normalNode = result.assignments.normalNode as never;
   material.emissiveNode = result.assignments.emissiveNode as never;
   material.opacityNode = opacityAssignment as never;
-  material.transparent = hasTransmission ? true : hasFractionalOpacity;
+  material.transparent = hasTransmission ? true : isAlphaBlendMode && hasFractionalOpacity;
+  if (isAlphaMaskMode) {
+    if (gltfAlphaCutoffAssignment !== undefined) {
+      material.alphaTestNode =
+        (typeof gltfAlphaCutoffAssignment === 'number' ? float(gltfAlphaCutoffAssignment) : gltfAlphaCutoffAssignment) as never;
+    }
+    const alphaCutoffLiteral = readNumberLiteral(gltfAlphaCutoffAssignment);
+    if (alphaCutoffLiteral !== undefined) {
+      material.alphaTest = alphaCutoffLiteral;
+    } else {
+      material.alphaTest = 0.5;
+    }
+  }
   material.transmissionNode = transmissionAssignment as never;
   if (result.assignments.thicknessNode !== undefined) {
     material.thicknessNode = result.assignments.thicknessNode as never;
@@ -102,8 +118,10 @@ export const createThreeMaterialFromDocument = (
     material.side = DoubleSide;
     material.transmission = transmissionLiteral ?? 1;
     material.opacity = 1;
-  } else if (opacityLiteral !== undefined) {
+  } else if (isAlphaBlendMode && opacityLiteral !== undefined) {
     material.opacity = opacityLiteral;
+  } else {
+    material.opacity = 1;
   }
   materialWithExtraNodes.transmissionColorNode =
     (result.assignments.transmissionColorNode ?? result.assignments.attenuationColorNode) as never;

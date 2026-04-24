@@ -1,5 +1,5 @@
 import type { MaterialXNode } from '@material-viewer/materialx';
-import { mul, step } from 'three/tsl';
+import { float, mul } from 'three/tsl';
 import type { MaterialSlotAssignments } from '../types.js';
 
 export interface GltfPbrSurfaceInputs {
@@ -41,12 +41,12 @@ const toAttenuationDistance = (distance: unknown, hasAttenuationColorInput: bool
   return distance;
 };
 
-const buildOpacityNode = (alpha: unknown, alphaMode: unknown, alphaCutoff: unknown): unknown => {
-  if (typeof alphaMode === 'number' && Math.round(alphaMode) === 1) {
-    // Approximate glTF MASK mode by converting alpha into a 0/1 coverage signal.
-    return step(alphaCutoff as never, alpha as never);
-  }
-  return alpha;
+const getAlphaMode = (alphaMode: unknown): 'opaque' | 'mask' | 'blend' => {
+  const alphaModeLiteral = readNumberLiteral(alphaMode);
+  const roundedMode = alphaModeLiteral === undefined ? 2 : Math.round(alphaModeLiteral);
+  if (roundedMode === 0) return 'opaque';
+  if (roundedMode === 1) return 'mask';
+  return 'blend';
 };
 
 const toIridescenceThicknessNode = (value: unknown): unknown => {
@@ -98,7 +98,8 @@ export const buildGltfPbrSurfaceAssignments = (
     : undefined;
 
   const emissiveNode = multiplyNodeValues(emissiveColor, emissiveStrength);
-  const opacityNode = buildOpacityNode(alpha, alphaMode, alphaCutoff);
+  const resolvedAlphaMode = getAlphaMode(alphaMode);
+  const opacityNode = resolvedAlphaMode === 'opaque' ? float(1) : alpha;
   const attenuationDistanceNode = toAttenuationDistance(attenuationDistance, hasInput('attenuation_color'));
   const iridescenceThicknessNode = toIridescenceThicknessNode(iridescenceThickness);
   const transmissionEnabled = isEnabledWeightNode(transmission);
@@ -117,6 +118,8 @@ export const buildGltfPbrSurfaceAssignments = (
     emissiveNode,
     attenuationColorNode: attenuationColor,
     attenuationDistanceNode,
+    gltfAlphaMode: resolvedAlphaMode,
+    gltfAlphaCutoffNode: alphaCutoff,
   };
 
   if (!isEffectivelyOne(specular)) assignments.specularIntensityNode = specular;

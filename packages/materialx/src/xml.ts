@@ -27,6 +27,7 @@ const builder = new XMLBuilder({
   suppressEmptyNode: true,
 });
 
+const DEFAULT_DOCUMENT_COLOR_SPACE = 'lin_rec709';
 const PORT_TAGS = new Set(['input', 'output', 'parameter']);
 
 const toArray = <T>(value: T | T[] | undefined): T[] => {
@@ -206,7 +207,10 @@ export const parseMaterialX = (xml: string): MaterialXDocument => {
     throw new Error('Invalid MaterialX XML: missing <materialx> root');
   }
 
-  const attributes = asStringRecord(root);
+  const attributes: Record<string, string> = {
+    colorspace: DEFAULT_DOCUMENT_COLOR_SPACE,
+    ...asStringRecord(root),
+  };
   const elements: MaterialXElement[] = [];
   for (const [tag, value] of Object.entries(root)) {
     if (tag === '#text') {

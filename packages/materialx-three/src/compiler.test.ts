@@ -552,6 +552,60 @@ describe('materialx-three compiler', () => {
     expect(result.assignments.colorNode).toBeDefined();
   });
 
+  it('supports fractal2d with default UV coordinates', () => {
+    const xml = `<?xml version="1.0"?>
+<materialx version="1.39" colorspace="lin_rec709">
+  <nodegraph name="NG_Fractal2d">
+    <fractal2d name="noise" type="float">
+      <input name="octaves" type="integer" value="5" />
+      <input name="lacunarity" type="float" value="2.25" />
+      <input name="diminish" type="float" value="0.55" />
+      <input name="amplitude" type="float" value="1.35" />
+    </fractal2d>
+    <convert name="color" type="color3">
+      <input name="in" type="float" nodename="noise" />
+    </convert>
+    <output name="out_color" type="color3" nodename="color" />
+  </nodegraph>
+  <standard_surface name="SR_Fractal2d" type="surfaceshader">
+    <input name="base_color" type="color3" nodegraph="NG_Fractal2d" output="out_color" />
+  </standard_surface>
+  <surfacematerial name="M_Fractal2d" type="material">
+    <input name="surfaceshader" type="surfaceshader" nodename="SR_Fractal2d" />
+  </surfacematerial>
+</materialx>`;
+    const result = compileMaterialXToTSL(parseMaterialX(xml));
+    expectCategoriesSupported(result, ['fractal2d']);
+    expect(result.assignments.colorNode).toBeDefined();
+  });
+
+  it('supports fractal3d with default object-space position', () => {
+    const xml = `<?xml version="1.0"?>
+<materialx version="1.39" colorspace="lin_rec709">
+  <nodegraph name="NG_Fractal3d">
+    <fractal3d name="noise" type="float">
+      <input name="octaves" type="integer" value="5" />
+      <input name="lacunarity" type="float" value="2.25" />
+      <input name="diminish" type="float" value="0.55" />
+      <input name="amplitude" type="float" value="1.35" />
+    </fractal3d>
+    <convert name="color" type="color3">
+      <input name="in" type="float" nodename="noise" />
+    </convert>
+    <output name="out_color" type="color3" nodename="color" />
+  </nodegraph>
+  <standard_surface name="SR_Fractal3d" type="surfaceshader">
+    <input name="base_color" type="color3" nodegraph="NG_Fractal3d" output="out_color" />
+  </standard_surface>
+  <surfacematerial name="M_Fractal3d" type="material">
+    <input name="surfaceshader" type="surfaceshader" nodename="SR_Fractal3d" />
+  </surfacematerial>
+</materialx>`;
+    const result = compileMaterialXToTSL(parseMaterialX(xml));
+    expectCategoriesSupported(result, ['fractal3d']);
+    expect(result.assignments.colorNode).toBeDefined();
+  });
+
   it('supports hextiled image sampling used by onyx fixture', () => {
     const result = compileFixture(onyxFixture);
     expectCategoriesSupported(result, ['hextiledimage']);

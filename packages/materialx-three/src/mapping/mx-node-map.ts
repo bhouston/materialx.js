@@ -91,6 +91,7 @@ export const supportedNodeCategories = new Set([
   'refract',
   'noise2d',
   'noise3d',
+  'fractal2d',
   'fractal3d',
   'cellnoise2d',
   'cellnoise3d',

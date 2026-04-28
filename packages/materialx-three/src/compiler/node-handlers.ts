@@ -132,10 +132,7 @@ const mx_ifequal_materialx = (value1: unknown, value2: unknown, in1: unknown, in
   mx_ifequal(value1 as never, value2 as never, in2 as never, in1 as never);
 
 const mxRotl32MaterialX = (x: unknown, k: number): unknown =>
-  bitOr(
-    shiftLeft(x as never, uint(k) as never) as never,
-    shiftRight(x as never, uint(32 - k) as never) as never,
-  );
+  bitOr(shiftLeft(x as never, uint(k) as never) as never, shiftRight(x as never, uint(32 - k) as never) as never);
 
 const mxBjmixMaterialX = (aInput: unknown, bInput: unknown, cInput: unknown): [unknown, unknown, unknown] => {
   const a = uint(aInput as never).toVar();
@@ -190,7 +187,7 @@ const mxBjfinalMaterialX = (aInput: unknown, bInput: unknown, cInput: unknown): 
 const mxBitsTo01MaterialX = (bits: unknown): unknown =>
   div(float(bits as never) as never, float(uint(0xffffffff) as never) as never);
 
-const mxCellNoiseVec3MaterialX = ((Fn as any)(([positionInput]: [unknown]) => {
+const mxCellNoiseVec3MaterialX = (Fn as any)(([positionInput]: [unknown]) => {
   const position = vec3(positionInput as never).toVar();
   const ix = int(floor(getNodeChannel(position, 0) as never) as never).toVar();
   const iy = int(floor(getNodeChannel(position, 1) as never) as never).toVar();
@@ -213,7 +210,7 @@ const mxCellNoiseVec3MaterialX = ((Fn as any)(([positionInput]: [unknown]) => {
     mxBitsTo01MaterialX(hash1) as never,
     mxBitsTo01MaterialX(hash2) as never,
   );
-}) as unknown) as (position: unknown) => unknown;
+}) as unknown as (position: unknown) => unknown;
 const mx_smoothstep_materialx = (inNode: unknown, low: unknown, high: unknown): unknown => {
   const range = sub(high as never, low as never);
   const safeRange = max(abs(range as never) as never, float(1e-6));
@@ -330,21 +327,48 @@ const rotate3dMaterialX = (inNode: unknown, amount: unknown, axis: unknown = vec
   const az = getNodeChannel(normalizedAxis, 2);
 
   const m00 = add(mul(mul(oc as never, ax as never) as never, ax as never) as never, c as never);
-  const m01 = sub(mul(mul(oc as never, ax as never) as never, ay as never) as never, mul(az as never, s as never) as never);
-  const m02 = add(mul(mul(oc as never, az as never) as never, ax as never) as never, mul(ay as never, s as never) as never);
+  const m01 = sub(
+    mul(mul(oc as never, ax as never) as never, ay as never) as never,
+    mul(az as never, s as never) as never,
+  );
+  const m02 = add(
+    mul(mul(oc as never, az as never) as never, ax as never) as never,
+    mul(ay as never, s as never) as never,
+  );
 
-  const m10 = add(mul(mul(oc as never, ax as never) as never, ay as never) as never, mul(az as never, s as never) as never);
+  const m10 = add(
+    mul(mul(oc as never, ax as never) as never, ay as never) as never,
+    mul(az as never, s as never) as never,
+  );
   const m11 = add(mul(mul(oc as never, ay as never) as never, ay as never) as never, c as never);
-  const m12 = sub(mul(mul(oc as never, ay as never) as never, az as never) as never, mul(ax as never, s as never) as never);
+  const m12 = sub(
+    mul(mul(oc as never, ay as never) as never, az as never) as never,
+    mul(ax as never, s as never) as never,
+  );
 
-  const m20 = sub(mul(mul(oc as never, az as never) as never, ax as never) as never, mul(ay as never, s as never) as never);
-  const m21 = add(mul(mul(oc as never, ay as never) as never, az as never) as never, mul(ax as never, s as never) as never);
+  const m20 = sub(
+    mul(mul(oc as never, az as never) as never, ax as never) as never,
+    mul(ay as never, s as never) as never,
+  );
+  const m21 = add(
+    mul(mul(oc as never, ay as never) as never, az as never) as never,
+    mul(ax as never, s as never) as never,
+  );
   const m22 = add(mul(mul(oc as never, az as never) as never, az as never) as never, c as never);
 
   return vec3(
-    add(add(mul(m00 as never, x as never) as never, mul(m10 as never, y as never) as never) as never, mul(m20 as never, z as never) as never),
-    add(add(mul(m01 as never, x as never) as never, mul(m11 as never, y as never) as never) as never, mul(m21 as never, z as never) as never),
-    add(add(mul(m02 as never, x as never) as never, mul(m12 as never, y as never) as never) as never, mul(m22 as never, z as never) as never),
+    add(
+      add(mul(m00 as never, x as never) as never, mul(m10 as never, y as never) as never) as never,
+      mul(m20 as never, z as never) as never,
+    ),
+    add(
+      add(mul(m01 as never, x as never) as never, mul(m11 as never, y as never) as never) as never,
+      mul(m21 as never, z as never) as never,
+    ),
+    add(
+      add(mul(m02 as never, x as never) as never, mul(m12 as never, y as never) as never) as never,
+      mul(m22 as never, z as never) as never,
+    ),
   );
 };
 
@@ -372,10 +396,7 @@ const place2dMaterialX = (
 };
 
 const mxToUvSpace = (uvNode: unknown): unknown =>
-  vec2(
-    getNodeChannel(uvNode, 0) as never,
-    sub(float(1), getNodeChannel(uvNode, 1) as never) as never,
-  );
+  vec2(getNodeChannel(uvNode, 0) as never, sub(float(1), getNodeChannel(uvNode, 1) as never) as never);
 
 const boolToFloatMask = (value: unknown): unknown => {
   const maybeBoolNode = value as { nodeType?: string; select?: (whenTrue: unknown, whenFalse: unknown) => unknown };
@@ -410,107 +431,115 @@ const safePowerNode = (in1: unknown, in2: unknown, outputType?: string): unknown
   return safePowerScalar(in1, in2);
 };
 
-const mx_worley_noise_float_materialx_2d = ((Fn as any)(([texcoordInput, jitterInput, styleInput]: [unknown, unknown, unknown]) => {
-  const texcoord = vec2(texcoordInput as never).toVar();
-  const jitter = float(jitterInput as never).toVar();
-  const style = int(styleInput as never).toVar();
-  const texcoordNode = texcoord as any;
+const mx_worley_noise_float_materialx_2d = (Fn as any)(
+  ([texcoordInput, jitterInput, styleInput]: [unknown, unknown, unknown]) => {
+    const texcoord = vec2(texcoordInput as never).toVar();
+    const jitter = float(jitterInput as never).toVar();
+    const style = int(styleInput as never).toVar();
+    const texcoordNode = texcoord as any;
 
-  const X = int().toVar();
-  const Y = int().toVar();
-  const floorPos = floor(texcoord as never).toVar();
-  const floorPosNode = floorPos as any;
-  X.assign(int(floorPosNode.x as never));
-  Y.assign(int(floorPosNode.y as never));
-  const localpos = vec2(fract(texcoordNode.x as never), fract(texcoordNode.y as never)).toVar();
-  const sqdist = float(1e6).toVar();
-  const minpos = vec2(0, 0).toVar();
+    const X = int().toVar();
+    const Y = int().toVar();
+    const floorPos = floor(texcoord as never).toVar();
+    const floorPosNode = floorPos as any;
+    X.assign(int(floorPosNode.x as never));
+    Y.assign(int(floorPosNode.y as never));
+    const localpos = vec2(fract(texcoordNode.x as never), fract(texcoordNode.y as never)).toVar();
+    const sqdist = float(1e6).toVar();
+    const minpos = vec2(0, 0).toVar();
 
-  // Type inference blows up on deeply nested TSL loop nodes; runtime behavior is correct.
-  (Loop as any)({ start: -1, end: int(1), name: 'x', condition: '<=' }, ({ x }: { x: unknown }) => {
-    (Loop as any)({ start: -1, end: int(1), name: 'y', condition: '<=' }, ({ y }: { y: unknown }) => {
-      // @ts-expect-error - TSL union types in nested loops are too complex for TS.
-      const cell = vec2(float(x as never), float(y as never)).toVar();
-      const cellNode = cell as any;
-      const seed = vec2(
-        cellNode.x.add(float(X as never)),
-        cellNode.y.add(float(Y as never)),
-      ).toVar();
-      const seedNode = seed as any;
-      const off = vec2(
-        mx_cell_noise_float(vec3(seedNode.x as never, seedNode.y as never, 0) as never),
-        mx_cell_noise_float(vec3(seedNode.x as never, seedNode.y as never, 1) as never),
-      ).toVar();
-      off.subAssign(float(0.5));
-      off.mulAssign(jitter as never);
-      off.addAssign(float(0.5));
-      const cellpos = vec2(sub(add(cell as never, off as never) as never, localpos as never) as never).toVar();
-      const dist = dot(cellpos as never, cellpos as never).toVar();
-
-      If((dist.lessThan(sqdist as never) as never), () => {
-        sqdist.assign(dist as never);
-        minpos.assign(cellpos as never);
-      });
-    });
-  });
-
-  If((style as any).equal(int(1)), () => {
-    sqdist.assign(mx_cell_noise_float(add(minpos as never, texcoord as never) as never) as never);
-  }).Else(() => {
-    sqdist.assign(sqrt(sqdist as never) as never);
-  });
-
-  return sqdist;
-}) as unknown) as (texcoord: unknown, jitter: unknown, style: unknown) => unknown;
-
-const mxWorleyNoiseFloatMaterialX3d = ((Fn as any)(([positionInput, jitterInput, styleInput]: [unknown, unknown, unknown]) => {
-  const position = vec3(positionInput as never).toVar();
-  const jitter = float(jitterInput as never).toVar();
-  const style = int(styleInput as never).toVar();
-  const positionNode = position as any;
-  const baseCell = vec3(floor(positionNode.x as never), floor(positionNode.y as never), floor(positionNode.z as never)).toVar();
-  const localpos = fract(position as never).toVar();
-  const sqdist = float(1e6).toVar();
-  const minpos = vec3(0, 0, 0).toVar();
-
-  // Type inference blows up on deeply nested TSL loop nodes; runtime behavior is correct.
-  (Loop as any)({ start: -1, end: int(1), name: 'x', condition: '<=' }, ({ x }: { x: unknown }) => {
-    (Loop as any)({ start: -1, end: int(1), name: 'y', condition: '<=' }, ({ y }: { y: unknown }) => {
-      (Loop as any)({ start: -1, end: int(1), name: 'z', condition: '<=' }, ({ z }: { z: unknown }) => {
-        const baseCellNode = baseCell as any;
-        const cellCoords = vec3(
-          baseCellNode.x.add(float(x as never)),
-          baseCellNode.y.add(float(y as never)),
-          baseCellNode.z.add(float(z as never)),
+    // Type inference blows up on deeply nested TSL loop nodes; runtime behavior is correct.
+    (Loop as any)({ start: -1, end: int(1), name: 'x', condition: '<=' }, ({ x }: { x: unknown }) => {
+      (Loop as any)({ start: -1, end: int(1), name: 'y', condition: '<=' }, ({ y }: { y: unknown }) => {
+        // @ts-expect-error - TSL union types in nested loops are too complex for TS.
+        const cell = vec2(float(x as never), float(y as never)).toVar();
+        const cellNode = cell as any;
+        const seed = vec2(cellNode.x.add(float(X as never)), cellNode.y.add(float(Y as never))).toVar();
+        const seedNode = seed as any;
+        const off = vec2(
+          mx_cell_noise_float(vec3(seedNode.x as never, seedNode.y as never, 0) as never),
+          mx_cell_noise_float(vec3(seedNode.x as never, seedNode.y as never, 1) as never),
         ).toVar();
-        const off = vec3(mxCellNoiseVec3MaterialX(cellCoords) as never).toVar();
         off.subAssign(float(0.5));
         off.mulAssign(jitter as never);
         off.addAssign(float(0.5));
-        const cellpos = vec3(
-          sub(
-            add(vec3(float(x as never) as never, float(y as never) as never, float(z as never) as never) as never, off as never) as never,
-            localpos as never,
-          ) as never,
-        ).toVar();
+        const cellpos = vec2(sub(add(cell as never, off as never) as never, localpos as never) as never).toVar();
         const dist = dot(cellpos as never, cellpos as never).toVar();
 
-        If((dist.lessThan(sqdist as never) as never), () => {
+        If(dist.lessThan(sqdist as never) as never, () => {
           sqdist.assign(dist as never);
           minpos.assign(cellpos as never);
         });
       });
     });
-  });
 
-  If((style as any).equal(int(1)), () => {
-    sqdist.assign(mx_cell_noise_float(add(minpos as never, position as never) as never) as never);
-  }).Else(() => {
-    sqdist.assign(sqrt(sqdist as never) as never);
-  });
+    If((style as any).equal(int(1)), () => {
+      sqdist.assign(mx_cell_noise_float(add(minpos as never, texcoord as never) as never) as never);
+    }).Else(() => {
+      sqdist.assign(sqrt(sqdist as never) as never);
+    });
 
-  return sqdist;
-}) as unknown) as (position: unknown, jitter: unknown, style: unknown) => unknown;
+    return sqdist;
+  },
+) as unknown as (texcoord: unknown, jitter: unknown, style: unknown) => unknown;
+
+const mxWorleyNoiseFloatMaterialX3d = (Fn as any)(
+  ([positionInput, jitterInput, styleInput]: [unknown, unknown, unknown]) => {
+    const position = vec3(positionInput as never).toVar();
+    const jitter = float(jitterInput as never).toVar();
+    const style = int(styleInput as never).toVar();
+    const positionNode = position as any;
+    const baseCell = vec3(
+      floor(positionNode.x as never),
+      floor(positionNode.y as never),
+      floor(positionNode.z as never),
+    ).toVar();
+    const localpos = fract(position as never).toVar();
+    const sqdist = float(1e6).toVar();
+    const minpos = vec3(0, 0, 0).toVar();
+
+    // Type inference blows up on deeply nested TSL loop nodes; runtime behavior is correct.
+    (Loop as any)({ start: -1, end: int(1), name: 'x', condition: '<=' }, ({ x }: { x: unknown }) => {
+      (Loop as any)({ start: -1, end: int(1), name: 'y', condition: '<=' }, ({ y }: { y: unknown }) => {
+        (Loop as any)({ start: -1, end: int(1), name: 'z', condition: '<=' }, ({ z }: { z: unknown }) => {
+          const baseCellNode = baseCell as any;
+          const cellCoords = vec3(
+            baseCellNode.x.add(float(x as never)),
+            baseCellNode.y.add(float(y as never)),
+            baseCellNode.z.add(float(z as never)),
+          ).toVar();
+          const off = vec3(mxCellNoiseVec3MaterialX(cellCoords) as never).toVar();
+          off.subAssign(float(0.5));
+          off.mulAssign(jitter as never);
+          off.addAssign(float(0.5));
+          const cellpos = vec3(
+            sub(
+              add(
+                vec3(float(x as never) as never, float(y as never) as never, float(z as never) as never) as never,
+                off as never,
+              ) as never,
+              localpos as never,
+            ) as never,
+          ).toVar();
+          const dist = dot(cellpos as never, cellpos as never).toVar();
+
+          If(dist.lessThan(sqdist as never) as never, () => {
+            sqdist.assign(dist as never);
+            minpos.assign(cellpos as never);
+          });
+        });
+      });
+    });
+
+    If((style as any).equal(int(1)), () => {
+      sqdist.assign(mx_cell_noise_float(add(minpos as never, position as never) as never) as never);
+    }).Else(() => {
+      sqdist.assign(sqrt(sqdist as never) as never);
+    });
+
+    return sqdist;
+  },
+) as unknown as (position: unknown, jitter: unknown, style: unknown) => unknown;
 
 const mxUnifiedNoise2dMaterialX = (
   type: unknown,
@@ -551,12 +580,7 @@ const mxUnifiedNoise2dMaterialX = (
     typeFloat,
     float(3),
     fractal,
-    mx_ifequal_materialx(
-      typeFloat,
-      float(2),
-      worley,
-      mx_ifequal_materialx(typeFloat, float(1), cell, perlin),
-    ),
+    mx_ifequal_materialx(typeFloat, float(2), worley, mx_ifequal_materialx(typeFloat, float(1), cell, perlin)),
   );
   const ranged = add(outMin as never, mul(switched as never, sub(outMax as never, outMin as never) as never) as never);
   const clamped = clamp(ranged as never, outMin as never, outMax as never);
@@ -597,17 +621,46 @@ const mxUnifiedNoise3dMaterialX = (
     typeFloat,
     float(3),
     fractal,
-    mx_ifequal_materialx(
-      typeFloat,
-      float(2),
-      worley,
-      mx_ifequal_materialx(typeFloat, float(1), cell, perlin),
-    ),
+    mx_ifequal_materialx(typeFloat, float(2), worley, mx_ifequal_materialx(typeFloat, float(1), cell, perlin)),
   );
   const ranged = add(outMin as never, mul(switched as never, sub(outMax as never, outMin as never) as never) as never);
   const clamped = clamp(ranged as never, outMin as never, outMax as never);
   return mx_ifequal_materialx(clampOutput, float(1), clamped, ranged);
 };
+
+const mxFractalNoiseFloatMaterialX2d = (Fn as any)(
+  ([texcoordInput, octavesInput, lacunarityInput, diminishInput, amplitudeInput]: [
+    unknown,
+    unknown,
+    unknown,
+    unknown,
+    unknown,
+  ]) => {
+    const texcoord = vec2(texcoordInput as never).toVar();
+    const octaves = int(octavesInput as never).toVar();
+    const lacunarity = float(lacunarityInput as never).toVar();
+    const diminish = float(diminishInput as never).toVar();
+    const amplitude = float(amplitudeInput as never).toVar();
+    const result = float(0).toVar();
+    const octaveAmplitude = float(1).toVar();
+
+    (Loop as any)(octaves, () => {
+      result.addAssign(
+        mul(octaveAmplitude as never, mx_noise_float(texcoord as never, float(1), float(0)) as never) as never,
+      );
+      octaveAmplitude.mulAssign(diminish as never);
+      texcoord.mulAssign(lacunarity as never);
+    });
+
+    return mul(result as never, amplitude as never);
+  },
+) as unknown as (
+  texcoord: unknown,
+  octaves: unknown,
+  lacunarity: unknown,
+  diminish: unknown,
+  amplitude: unknown,
+) => unknown;
 
 const bin =
   (deps: NodeHandlerDeps, left: string, right: string, op: (a: unknown, b: unknown) => unknown): NodeHandler =>
@@ -1210,15 +1263,33 @@ export const buildNodeHandlerRegistry = (deps: NodeHandlerDeps): Map<string, Nod
     const az = getNodeChannel(axis, 2);
 
     const m00 = add(mul(mul(oc as never, ax as never) as never, ax as never) as never, c as never);
-    const m01 = sub(mul(mul(oc as never, ax as never) as never, ay as never) as never, mul(az as never, s as never) as never);
-    const m02 = add(mul(mul(oc as never, az as never) as never, ax as never) as never, mul(ay as never, s as never) as never);
+    const m01 = sub(
+      mul(mul(oc as never, ax as never) as never, ay as never) as never,
+      mul(az as never, s as never) as never,
+    );
+    const m02 = add(
+      mul(mul(oc as never, az as never) as never, ax as never) as never,
+      mul(ay as never, s as never) as never,
+    );
 
-    const m10 = add(mul(mul(oc as never, ax as never) as never, ay as never) as never, mul(az as never, s as never) as never);
+    const m10 = add(
+      mul(mul(oc as never, ax as never) as never, ay as never) as never,
+      mul(az as never, s as never) as never,
+    );
     const m11 = add(mul(mul(oc as never, ay as never) as never, ay as never) as never, c as never);
-    const m12 = sub(mul(mul(oc as never, ay as never) as never, az as never) as never, mul(ax as never, s as never) as never);
+    const m12 = sub(
+      mul(mul(oc as never, ay as never) as never, az as never) as never,
+      mul(ax as never, s as never) as never,
+    );
 
-    const m20 = sub(mul(mul(oc as never, az as never) as never, ax as never) as never, mul(ay as never, s as never) as never);
-    const m21 = add(mul(mul(oc as never, ay as never) as never, az as never) as never, mul(ax as never, s as never) as never);
+    const m20 = sub(
+      mul(mul(oc as never, az as never) as never, ax as never) as never,
+      mul(ay as never, s as never) as never,
+    );
+    const m21 = add(
+      mul(mul(oc as never, ay as never) as never, az as never) as never,
+      mul(ax as never, s as never) as never,
+    );
     const m22 = add(mul(mul(oc as never, az as never) as never, az as never) as never, c as never);
 
     return vec3(
@@ -1315,16 +1386,26 @@ export const buildNodeHandlerRegistry = (deps: NodeHandlerDeps): Map<string, Nod
   });
 
   register(map, ['noise2d', 'noise3d'], (node, context, scopeGraph) => {
-    const coordinate = node.category === 'noise2d'
-      ? r(node, 'texcoord', mxToUvSpace(uv(0)), context, scopeGraph)
-      : r(node, 'position', positionLocal, context, scopeGraph);
+    const coordinate =
+      node.category === 'noise2d'
+        ? r(node, 'texcoord', mxToUvSpace(uv(0)), context, scopeGraph)
+        : r(node, 'position', positionLocal, context, scopeGraph);
     const amplitude = r(node, 'amplitude', 1, context, scopeGraph);
     const pivot = r(node, 'pivot', 0, context, scopeGraph);
     return mx_noise_float(coordinate as never, amplitude as never, pivot as never);
   });
 
+  map.set('fractal2d', (node, context, scopeGraph) => {
+    const texcoord = r(node, 'texcoord', mxToUvSpace(uv(0)), context, scopeGraph);
+    const octaves = r(node, 'octaves', 3, context, scopeGraph);
+    const lacunarity = r(node, 'lacunarity', 2, context, scopeGraph);
+    const diminish = r(node, 'diminish', 0.5, context, scopeGraph);
+    const amplitude = r(node, 'amplitude', 1, context, scopeGraph);
+    return mxFractalNoiseFloatMaterialX2d(texcoord, octaves, lacunarity, diminish, amplitude);
+  });
+
   map.set('fractal3d', (node, context, scopeGraph) => {
-    const position = r(node, 'position', vec3(0, 0, 0), context, scopeGraph);
+    const position = r(node, 'position', positionLocal, context, scopeGraph);
     const octaves = r(node, 'octaves', 3, context, scopeGraph);
     const lacunarity = r(node, 'lacunarity', 2, context, scopeGraph);
     const diminish = r(node, 'diminish', 0.5, context, scopeGraph);
@@ -1404,7 +1485,20 @@ export const buildNodeHandlerRegistry = (deps: NodeHandlerDeps): Map<string, Nod
     const lacunarity = r(node, 'lacunarity', 2, context, scopeGraph);
     const diminish = r(node, 'diminish', 0.5, context, scopeGraph);
     const style = r(node, 'style', 0, context, scopeGraph);
-    return mxUnifiedNoise3dMaterialX(type, position, freq, offset, jitter, outMin, outMax, clampOutput, octaves, lacunarity, diminish, style);
+    return mxUnifiedNoise3dMaterialX(
+      type,
+      position,
+      freq,
+      offset,
+      jitter,
+      outMin,
+      outMax,
+      clampOutput,
+      octaves,
+      lacunarity,
+      diminish,
+      style,
+    );
   });
 
   map.set('hextiledimage', (node, context, scopeGraph) => compileHexTiledTextureNode(node, context, scopeGraph));

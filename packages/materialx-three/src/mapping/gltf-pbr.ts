@@ -24,7 +24,8 @@ const isConstNear = (value: unknown, target: number, epsilon = 1e-6): boolean =>
 
 const isEffectivelyZero = (value: unknown): boolean => isConstNear(value, 0);
 const isEffectivelyOne = (value: unknown): boolean => isConstNear(value, 1);
-const isEnabledWeightNode = (value: unknown): boolean => value !== undefined && value !== null && !isEffectivelyZero(value);
+const isEnabledWeightNode = (value: unknown): boolean =>
+  value !== undefined && value !== null && !isEffectivelyZero(value);
 
 const multiplyNodeValues = (left: unknown, right: unknown): unknown =>
   (left as { mul?: (other: unknown) => unknown }).mul?.(right) ?? mul(left as never, right as never);

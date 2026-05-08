@@ -58,7 +58,12 @@ export const createResolveInputNode =
       const requestedOutput = reference.fromOutput
         ? reference.fromOutput.attributes.output
         : (input.output ?? input.attributes.output);
-      const compiledReference = compileNode(reference.fromNode, context, reference.fromGraph ?? scopeGraph, requestedOutput);
+      const compiledReference = compileNode(
+        reference.fromNode,
+        context,
+        reference.fromGraph ?? scopeGraph,
+        requestedOutput,
+      );
       if (compiledReference !== undefined) {
         return compiledReference;
       }

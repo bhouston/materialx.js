@@ -256,7 +256,7 @@ const transformPointBetweenSpaces = (
   const makeVec4 = vec4 as unknown as (x: unknown, y: unknown) => unknown;
   const point4 = makeVec4(inPoint, float(1));
   const multiplyPoint = (matrixNode: unknown): unknown =>
-    (mul(point4 as never, matrixNode as never) as { xyz?: unknown }).xyz;
+    (mul(matrixNode as never, point4 as never) as { xyz?: unknown }).xyz;
   if (fromSpace === 'object' && toSpace === 'world') {
     return multiplyPoint(modelWorldMatrix);
   }

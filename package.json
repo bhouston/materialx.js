@@ -32,7 +32,7 @@
   },
   "devDependencies": {
     "@types/node": "^24",
-    "@typescript/native-preview": "7.0.0-dev.20251229.1",
+    "@typescript/native-preview": "7.0.0-dev.20260421.2",
     "@vitest/coverage-v8": "^4.0.0",
     "husky": "^9.1.7",
     "oxfmt": "^0.45.0",

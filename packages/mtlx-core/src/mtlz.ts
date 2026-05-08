@@ -119,7 +119,11 @@ const toUint8Array = (data: string | Uint8Array): Uint8Array =>
 const toBuffer = (data: Uint8Array): Buffer =>
   Buffer.isBuffer(data) ? data : Buffer.from(data.buffer, data.byteOffset, data.byteLength);
 
-const makeIssue = (level: MaterialXValidationIssue['level'], location: string, message: string): MaterialXValidationIssue => ({
+const makeIssue = (
+  level: MaterialXValidationIssue['level'],
+  location: string,
+  message: string,
+): MaterialXValidationIssue => ({
   level,
   location,
   message,
@@ -162,12 +166,7 @@ const createPaddingExtra = (offsetBeforeHeader: number, encodedNameLength: numbe
   return extra;
 };
 
-const createLocalHeader = (
-  entryPath: string,
-  data: Uint8Array,
-  crc: number,
-  extra: Buffer,
-): Buffer => {
+const createLocalHeader = (entryPath: string, data: Uint8Array, crc: number, extra: Buffer): Buffer => {
   const name = encodePath(entryPath);
   const header = Buffer.alloc(30);
   header.writeUInt32LE(LOCAL_FILE_HEADER_SIGNATURE, 0);
@@ -207,7 +206,11 @@ const createCentralDirectoryHeader = (entry: PendingZipEntry): Buffer => {
   return Buffer.concat([header, toBuffer(name)]);
 };
 
-const createEndOfCentralDirectory = (entryCount: number, centralDirectorySize: number, centralDirectoryOffset: number): Buffer => {
+const createEndOfCentralDirectory = (
+  entryCount: number,
+  centralDirectorySize: number,
+  centralDirectoryOffset: number,
+): Buffer => {
   const eocd = Buffer.alloc(22);
   eocd.writeUInt32LE(END_OF_CENTRAL_DIRECTORY_SIGNATURE, 0);
   eocd.writeUInt16LE(0, 4);
@@ -226,10 +229,7 @@ export const createMaterialZArchive = (inputEntries: MaterialZArchiveInputEntry[
     throw new Error('A .mtlz archive must contain exactly one root-level .mtlx file');
   }
 
-  const entries = [
-    rootEntries[0]!,
-    ...inputEntries.filter((entry) => entry !== rootEntries[0]),
-  ];
+  const entries = [rootEntries[0]!, ...inputEntries.filter((entry) => entry !== rootEntries[0])];
   const seen = new Set<string>();
   const fileParts: Buffer[] = [];
   const pendingEntries: PendingZipEntry[] = [];
@@ -306,7 +306,10 @@ const sliceEntryData = (
   localHeaderOffset: number,
   issues: MaterialXValidationIssue[],
 ): { data: Uint8Array; dataOffset: number } => {
-  if (localHeaderOffset + 30 > buffer.byteLength || Buffer.from(buffer).readUInt32LE(localHeaderOffset) !== LOCAL_FILE_HEADER_SIGNATURE) {
+  if (
+    localHeaderOffset + 30 > buffer.byteLength ||
+    Buffer.from(buffer).readUInt32LE(localHeaderOffset) !== LOCAL_FILE_HEADER_SIGNATURE
+  ) {
     issues.push(makeIssue('error', entryPath, 'Central directory points to an invalid local file header'));
     return { data: new Uint8Array(), dataOffset: localHeaderOffset };
   }
@@ -389,7 +392,13 @@ export const inspectMaterialZArchive = (data: Uint8Array): MaterialZArchive => {
       issues.push(makeIssue('error', entryPath, '.mtlz archives must use ZIP32 entry fields'));
     }
 
-    const { data: entryData, dataOffset } = sliceEntryData(buffer, entryPath, compressedSize, localHeaderOffset, issues);
+    const { data: entryData, dataOffset } = sliceEntryData(
+      buffer,
+      entryPath,
+      compressedSize,
+      localHeaderOffset,
+      issues,
+    );
     entries.push({
       path: entryPath,
       data: entryData,
@@ -410,7 +419,9 @@ export const inspectMaterialZArchive = (data: Uint8Array): MaterialZArchive => {
   const sortedByLocalOffset = files.toSorted((left, right) => left.localHeaderOffset - right.localHeaderOffset);
   const rootEntry = rootEntries[0];
   if (rootEntry && sortedByLocalOffset[0]?.path !== rootEntry.path) {
-    issues.push(makeIssue('error', rootEntry.path, 'Root .mtlx file must be the first local file record in the archive'));
+    issues.push(
+      makeIssue('error', rootEntry.path, 'Root .mtlx file must be the first local file record in the archive'),
+    );
   }
 
   for (const entry of files) {
@@ -543,7 +554,10 @@ const rewriteResourceReferences = async (
   return resources.toSorted((left, right) => left.archivePath.localeCompare(right.archivePath));
 };
 
-export const packMaterialX = async (inputPath: string, options: PackMaterialXOptions = {}): Promise<PackMaterialXResult> => {
+export const packMaterialX = async (
+  inputPath: string,
+  options: PackMaterialXOptions = {},
+): Promise<PackMaterialXResult> => {
   const rootDir = path.dirname(inputPath);
   const rootPath = path.basename(inputPath);
   if (!rootPath.toLowerCase().endsWith('.mtlx')) {
@@ -559,11 +573,9 @@ export const packMaterialX = async (inputPath: string, options: PackMaterialXOpt
       data: await readFile(resource.sourcePath),
     })),
   );
-  const archive = createMaterialZArchive([
-    { path: rootPath, data: serializeMaterialX(document) },
-    ...resourceEntries,
-  ]);
-  const outputPath = options.outputPath ?? path.join(rootDir, `${path.basename(rootPath, path.extname(rootPath))}.mtlz`);
+  const archive = createMaterialZArchive([{ path: rootPath, data: serializeMaterialX(document) }, ...resourceEntries]);
+  const outputPath =
+    options.outputPath ?? path.join(rootDir, `${path.basename(rootPath, path.extname(rootPath))}.mtlz`);
   await writeFile(outputPath, archive);
   return {
     outputPath,

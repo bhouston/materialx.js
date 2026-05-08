@@ -167,7 +167,8 @@ export const buildOpenPbrSurfaceAssignments = (
   if (thinFilmEnabled) {
     assignments.iridescenceNode = thinFilmWeight;
     if (!isConstNear(thinFilmIor, 1.4)) assignments.iridescenceIORNode = thinFilmIor;
-    if (!isEffectivelyZero(thinFilmThicknessMicrometers)) assignments.iridescenceThicknessNode = thinFilmThicknessNanometers;
+    if (!isEffectivelyZero(thinFilmThicknessMicrometers))
+      assignments.iridescenceThicknessNode = thinFilmThicknessNanometers;
   }
 
   return assignments;

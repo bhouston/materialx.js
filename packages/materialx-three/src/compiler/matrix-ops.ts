@@ -280,10 +280,7 @@ export const applyMatrixTransform = (
       const transformed = multiplyMatrixVector(matrixValue, vector);
       return makeVectorFromComponents(transformed, 3);
     }
-    return mul(
-      matrixValue as never,
-      vec3(vector[0] as never, vector[1] as never, vector[2] as never) as never,
-    );
+    return mul(matrixValue as never, vec3(vector[0] as never, vector[1] as never, vector[2] as never) as never);
   }
   if (variant === 'vector3M4') {
     const [x, y, z] = toVectorComponents(inputValue, 3, [0, 0, 0]);

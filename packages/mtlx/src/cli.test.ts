@@ -106,7 +106,9 @@ describe('mtlx', () => {
     const fixture = await makePackFixture();
     const outputDir = path.join(fixture.tempDir, 'out');
     try {
-      const packResult = await cli.run(['pack', fixture.materialPath, '--output', fixture.archivePath], { timeout: 8_000 });
+      const packResult = await cli.run(['pack', fixture.materialPath, '--output', fixture.archivePath], {
+        timeout: 8_000,
+      });
       expect(packResult).toSucceed();
       expect(packResult).toHaveStdout(/Packed/);
       expect(existsSync(fixture.archivePath)).toBe(true);
@@ -115,7 +117,9 @@ describe('mtlx', () => {
       expect(checkResult).toSucceed();
       expect(checkResult).toHaveStdout(/Check passed|WARNING/);
 
-      const unpackResult = await cli.run(['unpack', fixture.archivePath, '--output-dir', outputDir], { timeout: 8_000 });
+      const unpackResult = await cli.run(['unpack', fixture.archivePath, '--output-dir', outputDir], {
+        timeout: 8_000,
+      });
       expect(unpackResult).toSucceed();
       expect(unpackResult).toHaveStdout(/Unpacked/);
       expect(existsSync(path.join(outputDir, 'material.mtlx'))).toBe(true);

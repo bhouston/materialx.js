@@ -98,8 +98,9 @@ export const createThreeMaterialFromDocument = (
   material.transparent = hasTransmission ? true : shouldUseOpacityBlending && hasFractionalOpacity;
   if (isAlphaMaskMode) {
     if (gltfAlphaCutoffAssignment !== undefined) {
-      material.alphaTestNode =
-        (typeof gltfAlphaCutoffAssignment === 'number' ? float(gltfAlphaCutoffAssignment) : gltfAlphaCutoffAssignment) as never;
+      material.alphaTestNode = (
+        typeof gltfAlphaCutoffAssignment === 'number' ? float(gltfAlphaCutoffAssignment) : gltfAlphaCutoffAssignment
+      ) as never;
     }
     const alphaCutoffLiteral = readNumberLiteral(gltfAlphaCutoffAssignment);
     if (alphaCutoffLiteral !== undefined) {
@@ -130,8 +131,8 @@ export const createThreeMaterialFromDocument = (
   } else {
     material.opacity = 1;
   }
-  materialWithExtraNodes.transmissionColorNode =
-    (result.assignments.transmissionColorNode ?? result.assignments.attenuationColorNode) as never;
+  materialWithExtraNodes.transmissionColorNode = (result.assignments.transmissionColorNode ??
+    result.assignments.attenuationColorNode) as never;
   material.attenuationColorNode = result.assignments.attenuationColorNode as never;
   material.attenuationDistanceNode = result.assignments.attenuationDistanceNode as never;
   material.iorNode = result.assignments.iorNode as never;

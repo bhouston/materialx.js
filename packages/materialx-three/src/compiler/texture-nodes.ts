@@ -57,7 +57,7 @@ const mxHextileHash = (point: unknown): unknown => {
   const x = element(point as never, 0 as never);
   const y = element(point as never, 1 as never);
   const p3Base = vec3(x as never, y as never, x as never);
-  const p3Scaled = mul(p3Base as never, vec3(0.1031, 0.1030, 0.0973) as never);
+  const p3Scaled = mul(p3Base as never, vec3(0.1031, 0.103, 0.0973) as never);
   const p3Fract = fract(p3Scaled as never);
   const p3YZX = vec3(
     element(p3Fract as never, 1 as never) as never,
@@ -76,7 +76,10 @@ const mxHextileHash = (point: unknown): unknown => {
 
 const mxSchlickGain = (x: unknown, r: unknown): unknown => {
   const rr = clamp(r as never, 0.001 as never, 0.999 as never);
-  const a = mul(sub(div(1 as never, rr as never) as never, 2 as never) as never, sub(1 as never, mul(2 as never, x as never) as never) as never);
+  const a = mul(
+    sub(div(1 as never, rr as never) as never, 2 as never) as never,
+    sub(1 as never, mul(2 as never, x as never) as never) as never,
+  );
   const low = div(x as never, add(a as never, 1 as never) as never);
   const high = div(sub(a as never, x as never) as never, sub(a as never, 1 as never) as never);
   return mix(low as never, high as never, step(0.5 as never, x as never) as never);
@@ -91,7 +94,13 @@ const normalizeBlendWeights = (weights: unknown): unknown => {
 };
 
 const mxHextileComputeBlendWeights = (luminanceWeights: unknown, tileWeights: unknown, falloff: unknown): unknown => {
-  const weighted = mul(luminanceWeights as never, pow(max(tileWeights as never, vec3(HEXTILE_EPSILON, HEXTILE_EPSILON, HEXTILE_EPSILON) as never) as never, vec3(7, 7, 7) as never) as never);
+  const weighted = mul(
+    luminanceWeights as never,
+    pow(
+      max(tileWeights as never, vec3(HEXTILE_EPSILON, HEXTILE_EPSILON, HEXTILE_EPSILON) as never) as never,
+      vec3(7, 7, 7) as never,
+    ) as never,
+  );
   const normalized = normalizeBlendWeights(weighted);
   const gained = vec3(
     mxSchlickGain(element(normalized as never, 0 as never), falloff) as never,
@@ -116,7 +125,7 @@ const mxRotate2d = (point: unknown, sine: unknown, cosine: unknown): unknown =>
   );
 
 const rotate2dMaterialX = (inNode: unknown, amount: unknown): unknown => {
-  const rotationRadians = mul(amount as never, Math.PI / 180.0 as never);
+  const rotationRadians = mul(amount as never, (Math.PI / 180.0) as never);
   const sa = sin(rotationRadians as never);
   const ca = cos(rotationRadians as never);
   const x = element(inNode as never, 0 as never);
@@ -170,10 +179,18 @@ const mxHextileCoord = (
   scaleRange: unknown,
   offset: unknown,
   offsetRange: unknown,
-): { coords: [unknown, unknown, unknown]; ddx: [unknown, unknown, unknown]; ddy: [unknown, unknown, unknown]; weights: unknown } => {
+): {
+  coords: [unknown, unknown, unknown];
+  ddx: [unknown, unknown, unknown];
+  ddy: [unknown, unknown, unknown];
+  weights: unknown;
+} => {
   const st = mul(coord as never, HEXTILE_SQRT3_2 as never);
   const stSkewed = vec2(
-    add(element(st as never, 0 as never) as never, mul(-0.57735027 as never, element(st as never, 1 as never) as never) as never) as never,
+    add(
+      element(st as never, 0 as never) as never,
+      mul(-0.57735027 as never, element(st as never, 1 as never) as never) as never,
+    ) as never,
     mul(1.15470054 as never, element(st as never, 1 as never) as never) as never,
   );
   const stFrac = fract(stSkewed as never);
@@ -195,7 +212,10 @@ const mxHextileCoord = (
     const scaled = div(tileId as never, HEXTILE_SQRT3_2 as never);
     const sx = element(scaled as never, 0 as never);
     const sy = element(scaled as never, 1 as never);
-    return vec2(add(sx as never, mul(0.5 as never, sy as never) as never) as never, mul(0.8660254 as never, sy as never) as never);
+    return vec2(
+      add(sx as never, mul(0.5 as never, sy as never) as never) as never,
+      mul(0.8660254 as never, sy as never) as never,
+    );
   };
 
   const ctr1 = toTileCenter(id1);
@@ -229,20 +249,47 @@ const mxHextileCoord = (
   );
   const scaleMin = element(scaleRange as never, 0 as never);
   const scaleMax = element(scaleRange as never, 1 as never);
-  const randomScale = mix(vec3(scaleMin as never, scaleMin as never, scaleMin as never) as never, vec3(scaleMax as never, scaleMax as never, scaleMax as never) as never, randY as never);
+  const randomScale = mix(
+    vec3(scaleMin as never, scaleMin as never, scaleMin as never) as never,
+    vec3(scaleMax as never, scaleMax as never, scaleMax as never) as never,
+    randY as never,
+  );
   const scales = mix(vec3(1, 1, 1) as never, randomScale as never, scale as never);
 
   const offsetMin = element(offsetRange as never, 0 as never);
   const offsetMax = element(offsetRange as never, 1 as never);
-  const offset1 = mix(vec2(offsetMin as never, offsetMin as never) as never, vec2(offsetMax as never, offsetMax as never) as never, mul(rand1 as never, offset as never) as never);
-  const offset2 = mix(vec2(offsetMin as never, offsetMin as never) as never, vec2(offsetMax as never, offsetMax as never) as never, mul(rand2 as never, offset as never) as never);
-  const offset3 = mix(vec2(offsetMin as never, offsetMin as never) as never, vec2(offsetMax as never, offsetMax as never) as never, mul(rand3 as never, offset as never) as never);
+  const offset1 = mix(
+    vec2(offsetMin as never, offsetMin as never) as never,
+    vec2(offsetMax as never, offsetMax as never) as never,
+    mul(rand1 as never, offset as never) as never,
+  );
+  const offset2 = mix(
+    vec2(offsetMin as never, offsetMin as never) as never,
+    vec2(offsetMax as never, offsetMax as never) as never,
+    mul(rand2 as never, offset as never) as never,
+  );
+  const offset3 = mix(
+    vec2(offsetMin as never, offsetMin as never) as never,
+    vec2(offsetMax as never, offsetMax as never) as never,
+    mul(rand3 as never, offset as never) as never,
+  );
 
-  const sampleCoord = (center: unknown, randomOffset: unknown, rotationValue: unknown, sampleScale: unknown): unknown => {
+  const sampleCoord = (
+    center: unknown,
+    randomOffset: unknown,
+    rotationValue: unknown,
+    sampleScale: unknown,
+  ): unknown => {
     const delta = sub(coord as never, center as never);
     const rotated = mxRotate2d(delta, sin(rotationValue as never), cos(rotationValue as never));
     const safeScale = max(sampleScale as never, HEXTILE_EPSILON as never);
-    return add(add(div(rotated as never, vec2(safeScale as never, safeScale as never) as never) as never, center as never) as never, randomOffset as never);
+    return add(
+      add(
+        div(rotated as never, vec2(safeScale as never, safeScale as never) as never) as never,
+        center as never,
+      ) as never,
+      randomOffset as never,
+    );
   };
 
   const sampleDerivative = (derivative: unknown, rotationValue: unknown, sampleScale: unknown): unknown => {
@@ -417,13 +464,28 @@ export const createTextureNodeCompiler = ({ resolveInputNode, readInput, warn, t
     const textureResolver =
       context.options.textureResolver ?? createTextureResolver({ basePath: context.options.basePath });
     const tex = textureResolver.resolve(uri, { document: context.document, node });
-    const tileData = mxHextileCoord(transformedUv, rotation, rotationRange, scale, scaleRange, offset, offsetRange) as { coords: [unknown, unknown, unknown]; ddx: [unknown, unknown, unknown]; ddy: [unknown, unknown, unknown]; weights: unknown };
-    
-    const invertY = (v: unknown): unknown => vec2(element(v as never, 0 as never) as never, mul(element(v as never, 1 as never) as never, -1) as never);
-    
-    const sample0Raw = texture(tex, mxFromUvSpace(tileData.coords[0]) as never).grad(invertY(tileData.ddx[0]) as never, invertY(tileData.ddy[0]) as never);
-    const sample1Raw = texture(tex, mxFromUvSpace(tileData.coords[1]) as never).grad(invertY(tileData.ddx[1]) as never, invertY(tileData.ddy[1]) as never);
-    const sample2Raw = texture(tex, mxFromUvSpace(tileData.coords[2]) as never).grad(invertY(tileData.ddx[2]) as never, invertY(tileData.ddy[2]) as never);
+    const tileData = mxHextileCoord(transformedUv, rotation, rotationRange, scale, scaleRange, offset, offsetRange) as {
+      coords: [unknown, unknown, unknown];
+      ddx: [unknown, unknown, unknown];
+      ddy: [unknown, unknown, unknown];
+      weights: unknown;
+    };
+
+    const invertY = (v: unknown): unknown =>
+      vec2(element(v as never, 0 as never) as never, mul(element(v as never, 1 as never) as never, -1) as never);
+
+    const sample0Raw = texture(tex, mxFromUvSpace(tileData.coords[0]) as never).grad(
+      invertY(tileData.ddx[0]) as never,
+      invertY(tileData.ddy[0]) as never,
+    );
+    const sample1Raw = texture(tex, mxFromUvSpace(tileData.coords[1]) as never).grad(
+      invertY(tileData.ddx[1]) as never,
+      invertY(tileData.ddy[1]) as never,
+    );
+    const sample2Raw = texture(tex, mxFromUvSpace(tileData.coords[2]) as never).grad(
+      invertY(tileData.ddx[2]) as never,
+      invertY(tileData.ddy[2]) as never,
+    );
     const sample0 = applyTextureColorSpace(
       fileInput?.attributes.colorspace,
       context.document.attributes.colorspace,
@@ -457,7 +519,11 @@ export const createTextureNodeCompiler = ({ resolveInputNode, readInput, warn, t
     );
     const cw = mix(
       vec3(1, 1, 1) as never,
-      vec3(dot(c0 as never, lumaCoeffs as never) as never, dot(c1 as never, lumaCoeffs as never) as never, dot(c2 as never, lumaCoeffs as never) as never) as never,
+      vec3(
+        dot(c0 as never, lumaCoeffs as never) as never,
+        dot(c1 as never, lumaCoeffs as never) as never,
+        dot(c2 as never, lumaCoeffs as never) as never,
+      ) as never,
       vec3(falloffContrast as never, falloffContrast as never, falloffContrast as never) as never,
     );
     const blendWeights = mxHextileComputeBlendWeights(cw, tileData.weights, falloff);
@@ -471,10 +537,19 @@ export const createTextureNodeCompiler = ({ resolveInputNode, readInput, warn, t
     );
     const blendedAlpha = add(
       add(
-        mul(element(alphaWeights as never, 0 as never) as never, element(sample0Raw as never, 3 as never) as never) as never,
-        mul(element(alphaWeights as never, 1 as never) as never, element(sample1Raw as never, 3 as never) as never) as never,
+        mul(
+          element(alphaWeights as never, 0 as never) as never,
+          element(sample0Raw as never, 3 as never) as never,
+        ) as never,
+        mul(
+          element(alphaWeights as never, 1 as never) as never,
+          element(sample1Raw as never, 3 as never) as never,
+        ) as never,
       ) as never,
-      mul(element(alphaWeights as never, 2 as never) as never, element(sample2Raw as never, 3 as never) as never) as never,
+      mul(
+        element(alphaWeights as never, 2 as never) as never,
+        element(sample2Raw as never, 3 as never) as never,
+      ) as never,
     );
     const blendedSample = vec4(blendedRgb as never, blendedAlpha as never);
     return selectTextureSample(blendedSample, node.type);

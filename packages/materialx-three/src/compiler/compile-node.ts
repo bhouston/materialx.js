@@ -8,20 +8,7 @@ import { toScalar, warn } from './warnings.js';
 import { toNodeValue } from './value-coercion.js';
 
 let nodeHandlers!: Map<string, NodeHandler>;
-const channelOutputs = new Set([
-  'outx',
-  'outy',
-  'outz',
-  'outw',
-  'outr',
-  'outg',
-  'outb',
-  'outa',
-  'r',
-  'g',
-  'b',
-  'a',
-]);
+const channelOutputs = new Set(['outx', 'outy', 'outz', 'outw', 'outr', 'outg', 'outb', 'outa', 'r', 'g', 'b', 'a']);
 
 export function compileNode(
   node: MaterialXNode,

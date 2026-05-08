@@ -26,7 +26,8 @@ const fixturePaths = [
 ].map((fixturePath) => path.join(materialXRoot, fixturePath));
 
 const passthroughFixturePath = path.join(materialXRoot, 'libraries/stdlib/stdlib_defs.mtlx');
-const upstreamFixturesAvailable = fixturePaths.every((fixturePath) => existsSync(fixturePath)) && existsSync(passthroughFixturePath);
+const upstreamFixturesAvailable =
+  fixturePaths.every((fixturePath) => existsSync(fixturePath)) && existsSync(passthroughFixturePath);
 
 const expectedCategories = [
   'surfacematerial',
